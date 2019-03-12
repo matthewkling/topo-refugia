@@ -76,7 +76,7 @@ p <- ggplot() +
       xlim(0, 1500) +
       labs(x="CWD (mm)",
            y="southness",
-           fill="relative\nlog\nfrequency") +
+           fill="log trees\nper plot") +
       theme_minimal() +
       theme(strip.text=element_blank())
 ggsave("figures/regional_southness_cwd_occupancy.png", p, width=8, height=8, units="in")
