@@ -6,12 +6,13 @@
 
 
 # 2) Mean topoclimate location of species from hyperspectral
-
+# pwd_hyperspectral_topo_niche.R
+# output: 
 
 
 # 3) species mean climate location
-
-
+# regional_niche_models.R
+# output: 
 
 # 4) #2 vs. #3
 

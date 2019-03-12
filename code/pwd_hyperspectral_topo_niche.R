@@ -1,52 +1,70 @@
-## Frontiers #2 - mean topo position of species at pepperwood
+## Frontiers paper step #2 - mean topo position of species at pepperwood
 
 rm(list=ls())
 library(raster)
 
-# load cwd and southness and compare
-cwd10 <- raster('/Users/david/Google Drive/Drive-Projects/Pepperwood/PWD_GIS/BCM_10m/bcm_outputs/aea/cwd1981_2010_ave.asc')
-projection(cwd10)
-plot(cwd10)
-cwd10[cwd10<0] <- NA
-hist(getValues(cwd10))
-
-dem <- raster('/Users/david/Google Drive/Drive-Projects/Pepperwood/PWD_GIS/dem/BCM10m/pwd_10m_t1.asc')
-plot(dem)
-
-cwd10 <- crop(cwd10,dem)
-plot(cwd10)
-
-projection(dem) <- CRS('+proj=aea +datum=NAD83 +lat_1=34 +lat_2=40.5 +lat_0=0 +lon_0=-120 +x_0=0 +y_0=-4000000')
-slp <- terrain(dem,'slope')
-asp <- terrain(dem,'aspect')
-south <- -1*cos(asp)*sin(slp)
-plot(south)
-plot(getValues(cwd10)~getValues(south))
-cor(getValues(cwd10),getValues(south),use='pair')
-length(getValues(cwd10))
-
 # load 10 m hyperspectral tree layer
-hyp <- readRDS('/Users/david/Google\ Drive/Drive-Projects/Pepperwood/HyperspectralTreeMap/data/pwd_hyp_topo.Rdata')
+hyp <- readRDS('big_data/pwd_hyp_topo.Rdata')
 names(hyp)
 dim(hyp)
 
-hist(hyp$cwd8110)
-hist(hyp$Doug.fir_X)
+# look at some of the data
+# hist(hyp$cwd8110)
+# hist(hyp$Doug.fir_X)
 
-weighted.mean(hyp$cwd8110,hyp$Doug.fir_X,na.rm=T)
-hist(hyp$cwd8110)
-hist(hyp$cwd8110[hyp$Doug.fir_X>0.9])
-hist(hyp$cwd8110[hyp$Shrubland_X >0.9])
-hist(hyp$Doug.fir_X)
-table(hyp$Maple_X)
-plot(hyp$Maple,hyp$Maple_X)
+# look at some methods to come up with mean topo position
+# weighted.mean(hyp$cwd8110,hyp$Doug.fir_X,na.rm=T)
+# hist(hyp$cwd8110)
+# hist(hyp$cwd8110[hyp$Doug.fir_X>0.9])
+# hist(hyp$cwd8110[hyp$Shrubland_X >0.9])
+# hist(hyp$Doug.fir_X)
+# table(hyp$Maple_X)
+# plot(hyp$Maple,hyp$Maple_X)
+#tapply(hyp$Maple,hyp$Maple_X,max,na.rm=T)
+#tapply(hyp$Grassland,hyp$Grassland_X,max,na.rm=T)
 
-head(hyp)
-hyp$vegt <- apply(hyp[,13:26],1,sum)
-hyp$vegXt <- apply(hyp[,29:42],1,sum)
+# Look at distribution of values - mostly fall on the 1/25 sequence, but some in between. These would be due to edges and non-native types excluded from denominator in the aggregation step of the hyperspectral
+plot(sort(hyp$Grassland[hyp$Grassland!=0]))
+
+## THERE"S SOMETHING WRONG WITH THE '_X' variables - ignoring them for now
+# They are supposed to be the binary species assignment, based on most common 
+
+# Checking the sum of relative frequencies of species of interest in each cell
+# Because some types are excluded - water, ag, etc. - not all sum to one. This has to be dealt with below in some of the weighting schemes
+names(hyp)
+hyp$veg.sum <- apply(hyp[,14:27],1,sum)
+hyp$woodyt <- apply(hyp[,15:27],1,sum)
+#hyp$vegXt <- apply(hyp[,31:43],1,sum)
 hist(hyp$vegt)
+hist(hyp$woodyt)
+length(which(hyp$woodyt==1))
+length(which(hyp$woodyt>=0.5))
+#hist(hyp$vegXt)
 
-hypv <- hyp[!is.na(hyp$vegXt)&!is.na(hyp$cwd8110),]
+# subsequent analyses will be done one cells with at least 50% woody native veg types (including Shrubland) and have values for southness and cwd
+xx <- complete.cases(hyp[,c('cwd8110','southness')])
+length(xx)
+length(which(!is.na(hyp$cwd8110)))
+length(which(!is.na(hyp$southness)))
+length(intersect(which(!is.na(hyp$southness)), which(!is.na(hyp$cwd8110))))
+# something weird here - complete.cases is longer than either column. But this shows that southness has fewer cases and is a subset of cwd, so we'll use that to subset data.frame
+
+# subset data frame
+hypv <- hyp[intersect(which(hyp$woodyt>=0.5) , which(!is.na(hyp$southness))),]
+dim(hypv)
+names(hypv)
+
+# set up breaks for histograms, either equally spaced or by even percentiles of the abundances; look at relationship between cwd and southness
+
+summary(hypv$cwd8110)
+summary(hypv$southness)
+hist(hypv$cwd8110)
+hist(hypv$southness,breaks=seq(-0.75,0.7,by=0.05))
+rsamp <- sample(nrow(hypv),10000)
+plot(hypv[rsamp,c('southness','cwd8110')])
+
+#### UP TO HERE REVISING SCRIPT
+
 
 hypv$cwd50 <- cut(hypv$cwd8110,breaks=seq(325,1425,by=50))
 summary(hypv$cwd50)
