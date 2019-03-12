@@ -13,7 +13,7 @@ library(mgcv)
 
 # focal species list
 spp <- c("Acer macrophyllum", "Aesculus californica", "Arbutus menziesii", 
-         "Pseudotsuga menziesii", "Notholithocarbus densiflorus", "Quercus agrifolia", 
+         "Pseudotsuga menziesii", "Notholithocarpus densiflorus", "Quercus agrifolia", 
          "Quercus douglasii", "Quercus garryana","Quercus kelloggii", 
          "Quercus lobata", "Sequoia sempervirens", "Umbellularia californica")
 
@@ -26,6 +26,7 @@ usa <- raster::getData("GADM", country="USA", level=1)
 usa <- usa[! usa$NAME_1 %in% c("Alaska", "Hawaii"),]
 clim <- crop(clim, usa)
 clim <- mask(clim, usa)
+writeRaster(clim, "big_data/climate/cwd_masked.tif", overwrite=T)
 
 # load FIA data for focal species
 # note: leaving the data in granular tree form, to model abundance
@@ -102,7 +103,7 @@ p <- ggplot() +
       theme(legend.position="bottom", panel.grid=element_blank(),
             strip.text=element_blank(), axis.ticks.y=element_blank(),
             axis.text.y=element_blank(), axis.title.y=element_blank())
-ggsave("figures/rangewide_response_curves.png", p, width=8, height=8, units="in")
+ggsave("figures/regional_response_curves.png", p, width=8, height=8, units="in")
 
 
 
