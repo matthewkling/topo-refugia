@@ -105,6 +105,7 @@ p <- ggplot() +
             axis.text.y=element_blank(), axis.title.y=element_blank())
 ggsave("figures/regional_response_curves.png", p, width=8, height=8, units="in")
 
+write.csv(r, "data/regional_niche_stats.csv", row.names = F)
 
 
 
