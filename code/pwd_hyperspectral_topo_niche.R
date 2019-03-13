@@ -4,7 +4,7 @@ rm(list=ls())
 library(raster)
 
 # load 10 m hyperspectral tree layer
-hyp <- readRDS('big_data/pwd_hyp_topo.Rdata')
+hyp <- readRDS('data/pwd_hyp_topo.Rdata')
 names(hyp)
 dim(hyp)
 
