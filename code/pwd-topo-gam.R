@@ -60,15 +60,10 @@ vars <- c("cwd8110", "model3")
 for(sp in species){
       message(sp)
       
-      # subsample for speed, but keep all the presences
-      pres <- hypv[,paste0(sp, "_X")] > 0
-      md <- rbind(hypv[which(pres),], # all the presences
-                  hypv[sample(which(!pres), # enough absences
-                              max(sum(pres), 100000)),])
-      
-      # construct formula and fit gam
+      # construct formula, fit gam, add model predictions to data frame
+      spname <- paste0(sp, "_X")
       formula <- as.formula(paste0(sp, "_X ~ ", paste0("s(", vars, ")", collapse=" + ")))
-      fit <- gam(formula, data=md, family=binomial(logit))
+      fit <- gam(formula, data=hypv, family=binomial(logit))
+      hypv[,paste0(sp, "_pred")] <- predict(fit, hypv)
       
-      vis.gam(fit, theta=45, phi=30, type="response", main=sp)
 }
