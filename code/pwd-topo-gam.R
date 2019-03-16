@@ -46,6 +46,29 @@ cor(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model
 # exposure - pick either cwd8110 or southness; cwd has advantage that we can change value for futures
 # hilltop-valley bottom - used model3 as units are temp and we can explore futures (if the causal factor influencing hilltop-valley bottom distributions is temp; if it's water accumulation, then use topoid or TIP1k and we would keep it fixed for futures)
 
-# gam model
-fit1 <- gam(Shrubland ~ s(c(cwd8110,model3), k=2), data=d, family=binomial(logit))
-d$fit <- predict(fit, d, type="response")
+
+
+
+
+species <- c("Maple", "Buckeye", "Madrone", "Tanoak", "Doug.fir", "Redwood",
+             "Coast.live.oak", "Blue.oak", "Oregon.oak", "Black.oak", "Valley.oak")
+
+# define model predictors
+vars <- c("cwd8110", "model3")
+
+
+for(sp in species){
+      message(sp)
+      
+      # subsample for speed, but keep all the presences
+      pres <- hypv[,paste0(sp, "_X")] > 0
+      md <- rbind(hypv[which(pres),], # all the presences
+                  hypv[sample(which(!pres), # enough absences
+                              max(sum(pres), 100000)),])
+      
+      # construct formula and fit gam
+      formula <- as.formula(paste0(sp, "_X ~ ", paste0("s(", vars, ")", collapse=" + ")))
+      fit <- gam(formula, data=md, family=binomial(logit))
+      
+      vis.gam(fit, theta=45, phi=30, type="response", main=sp)
+}
