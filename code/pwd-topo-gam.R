@@ -43,9 +43,22 @@ cor(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model
 # topoid and model3
 
 # concepts to capture
+#Model 1
+# for using model based approach to get niche modes, use topography, as it's agnostic to causes
+
 # exposure - pick either cwd8110 or southness; cwd has advantage that we can change value for futures
 # hilltop-valley bottom - used model3 as units are temp and we can explore futures (if the causal factor influencing hilltop-valley bottom distributions is temp; if it's water accumulation, then use topoid or TIP1k and we would keep it fixed for futures)
 
 # gam model
-fit1 <- gam(Shrubland ~ s(c(cwd8110,model3), k=2), data=d, family=binomial(logit))
+fit1 <- gam(Shrubland ~ s(c(southness,topoid), k=2), data=d, family=binomial(logit))
+d$fit <- predict(fit, d, type="response")
+
+
+#Model2 - for modeling futures under hypothetical cwd and temp change, but requires a stronger causal argument that these factors underly distributions
+
+# exposure - pick either cwd8110 or southness; cwd has advantage that we can change value for futures
+# hilltop-valley bottom - used model3 as units are temp and we can explore futures (if the causal factor influencing hilltop-valley bottom distributions is temp; if it's water accumulation, then use topoid or TIP1k and we would keep it fixed for futures)
+
+# gam model
+fit2 <- gam(Shrubland ~ s(c(cwd8110,model3), k=2), data=d, family=binomial(logit))
 d$fit <- predict(fit, d, type="response")
