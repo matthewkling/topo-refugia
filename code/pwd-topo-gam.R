@@ -57,13 +57,10 @@ species <- c("Maple", "Buckeye", "Madrone", "Tanoak", "Doug.fir", "Redwood",
 vars <- c("cwd8110", "model3")
 
 
+# construct formula, fit gam, add model predictions to data frame
 for(sp in species){
       message(sp)
-      
-      # construct formula, fit gam, add model predictions to data frame
-      spname <- paste0(sp, "_X")
-      formula <- as.formula(paste0(sp, "_X ~ ", paste0("s(", vars, ")", collapse=" + ")))
+      formula <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + ")))
       fit <- gam(formula, data=hypv, family=binomial(logit))
-      hypv[,paste0(sp, "_pred")] <- predict(fit, hypv)
-      
+      hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
 }
