@@ -54,8 +54,10 @@ vars <- c("cwd8110", "model3")
 sfits <- list()
 
 # cspace is an orthogonal matrix spanning the range of cwd and tmin vals, to visualize model fit
-cvals <- seq(min(hypv$cwd8110),max(hypv$cwd8110),length.out = 100)
-tvals <- seq(min(hypv$model3,na.rm=T),max(hypv$model3,na.rm=T),length.out = 100)
+summary(hypv$cwd8110)
+summary(hypv$model3)
+cvals <- seq(0,1500,length.out = 100)
+tvals <- seq(-2,8,length.out = 100)
 cspace <- data.frame(matrix(NA,nrow=length(cvals)*length(tvals),ncol=(2+length(species))))
 dim(cspace)
 names(cspace) <- c('cwd8110','model3',paste0(species,'_pred'))
@@ -77,7 +79,7 @@ for(i in 1:length(species)){
 
 # extract summaries and model fits from gam models
 # define model predictors
-fit_max <- data.frame(species,cwd_opt=NA,tmin_opt=NA,dev.expl=NA)
+fit_max <- data.frame(species,cwd_opt=NA,tmin_opt=NA,pmax=NA,dev.expl=NA,cwd.chisq=NA,tmin.chisq=NA,cwd.mean=NA,tmin.mean=NA)
 
 i=1
 for (i in 1:length(species)) {
@@ -86,24 +88,44 @@ for (i in 1:length(species)) {
   wm <- which.max(cspace[,paste0(sp,"_pred")])
   fit_max[fit_max$species==sp,'cwd_opt'] <- cspace$cwd8110[wm]
   fit_max[fit_max$species==sp,'tmin_opt'] <- cspace$model3[wm]
+  fit_max[fit_max$species==sp,'pmax'] <- cspace[wm,paste0(sp,"_pred")]
   fit_max[fit_max$species==sp,'dev.expl'] <- summary(fits[[i]])$dev.expl
-}
+  fit_max[fit_max$species==sp,c('cwd.chisq','tmin.chisq')] <- summary(fits[[i]])$chi.sq
+  fit_max[fit_max$species==sp,'cwd.mean'] <- weighted.mean(hypv$cwd8110[rsamp],hypv[rsamp,paste0(sp,"_pred")],na.rm=T)
+  fit_max[fit_max$species==sp,'tmin.mean'] <- weighted.mean(hypv$model3,hypv[,paste0(sp,"_pred")],na.rm=T)
+  }
 
 fit_max[order(fit_max$cwd_opt),]
 fit_max[order(fit_max$tmin_opt),]
+plot(fit_max[,c('tmin_opt','tmin.mean')])
+plot(fit_max[,c('cwd_opt','cwd.mean')])
 write.csv(fit_max,'data/pwd_gam1.csv')
-sp=species[11]
 
+species
+sp=species[1]
+message(sp)
 plot(cspace[,c('cwd8110',paste0(sp,"_pred"))])
 plot(cspace[,c('model3',paste0(sp,"_pred"))])
 
+plot(hypv[rsamp,c('southness',paste0(sp,"_pred"))])
+plot(hypv[rsamp,c('topoid',paste0(sp,"_pred"))])
+plot(hypv[rsamp,c('southness','topoid')])
+
+# Do predictions sum to close to 100%
+head(cspace)
+cspace$pwoody <- apply(cspace[,grep('pred',names(cspace))],1,sum)
+hist(cspace$pwoody)
 
 #### LATER
 # models with geology
 # construct formula, fit gam, add model predictions to data frame
 head(hypv)
+table(hypv$rock.group)
 table(hypv$rock.group.num)
-vars <- c("cwd8110", "model3", "rock.group")
+hypv$rock.group3 <- hypv$rock.group
+hypv$rock.group3[hypv$rock.group=='ultra'] <- NA
+
+vars3 <- c("cwd8110", "model3", "rock.group3")
 
 # save models
 sfit2 <- list()
@@ -113,7 +135,25 @@ i=11
 for(i in 1:length(species)){
   sp <- species[i]
   message(sp)
-  formula <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + ")))
-  fit <- gam(formula, data=hypv, family=binomial(logit))
+  formula2 <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + ")))
+  fit2 <- gam(formula2, data=hypv, family=binomial(logit))
+  formula3 <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + "),' + ','rock.group3'))
+  fit3 <- gam(formula3, data=hypv, family=binomial(logit))
+  hypv[,paste0(sp, "_pred3")] <- predict(fit3, hypv, type="response")
+  
+  # fit cwd model on different rock types
+  # formula1 <- as.formula(paste0(sp, " ~ ", "s(cwd8110)"))
+  # fit.mun <- gam(formula1, data=hypv[hypv$rock.group %in% c('melange','uncon'),], ,family=binomial(logit))
+  # hypv[,paste0(sp, "_pred.mun")] <- predict(fit.mun, hypv, type="response")
+  # 
+  # fit.bl <- gam(formula1, data=hypv[hypv$rock.group %in% c('block'),],family=binomial(logit))
+  # hypv[,paste0(sp, "_pred.bl")] <- predict(fit.bl, hypv, type="response")
+  
 }
-summary(fit)
+summary(fit3)
+AIC(fit3)
+vis.gam(fit3, c("cwd8110","model3"), type="response")
+boxplot(hypv[,paste0(sp, "_pred3")]~hypv$rock.group,)
+plot(hypv[rsamp,c('cwd8110',paste0(sp, "_pred.mun"))])
+points(hypv[rsamp,c('cwd8110',paste0(sp, "_pred.bl"))])
+
