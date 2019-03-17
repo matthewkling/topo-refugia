@@ -10,7 +10,6 @@ hyp <- readRDS('data/pwd_hyp_topo.Rdata')
 names(hyp)
 dim(hyp)
 
-
 # sum proportional occurrence for the woody plant columns
 hyp$woodyt <- apply(hyp[,15:27],1,sum) 
 
@@ -50,7 +49,8 @@ cor(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model
 # hilltop-valley bottom - used model3 as units are temp and we can explore futures (if the causal factor influencing hilltop-valley bottom distributions is temp; if it's water accumulation, then use topoid or TIP1k and we would keep it fixed for futures)
 
 # gam model
-fit1 <- gam(Shrubland ~ s(c(southness,topoid), k=2), data=d, family=binomial(logit))
+xx <- complete.cases(hypv[,c('Shrubland','southness','topoid')])
+fit1 <- gam(Shrubland ~ s(c(southness,topoid), k=2), data=hypv[xx,], family=binomial(logit))
 d$fit <- predict(fit, d, type="response")
 
 
