@@ -23,9 +23,24 @@ abline(fit)
 pwdg.reg <- merge(pwdgam,pwd.reg,by.x='sci.name',by.y='sci.names')
 pwdg.reg
 plot(pwdg.reg$cwd_opt,pwdg.reg$cwd.occ.even)
-plot(pwdg.reg$cwd_opt,pwdg.reg$cwd.mean)
+plot(pwdg.reg$cwd_opt,pwdg.reg$cwd.mean.x)
 plot(pwdg.reg$cwd_opt,pwdg.reg$south.mean)
 plot(pwdg.reg$cwd_opt,pwdg.reg$clim)
+
+names(pwdg.reg)
+pairs(pwdg.reg[,c('cwd_opt','cwd.mean.x','cwd.mean.y','cwd.occ.even','south.mean','south.occ.even','clim')])
+(cwd_corr_matrix <- cor(pwdg.reg[,c('cwd_opt','cwd.mean.x','cwd.mean.y','cwd.occ.even','south.mean','south.occ.even','clim')]))
+min(cwd_corr_matrix)
+
+# lowest correlation between regional clim mean and any local cwd or southness measure at pepperwood
+plot(pwdg.reg[,c('clim','south.mean')])
+fit=lm(pwdg.reg$south.mean~pwdg.reg$clim)
+abline(fit)
+summary(fit)
+
+pairs(pwdg.reg[,c('tmin_opt','tmin.mean')])
+(cor(pwdg.reg[,c('tmin_opt','tmin.mean')]))
+
 fit <- lm(pwdg.reg$clim~pwdg.reg$cwd_opt)
 abline(fit)
 summary(fit)

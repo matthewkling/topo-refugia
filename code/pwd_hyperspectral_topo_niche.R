@@ -188,7 +188,7 @@ pairs(niche[,c(1,2,4,5)])
 dev.off()
 
 rownames(niche)
-sci.names <- c('Adenostoma fasciculatum','Acer macrophyllum','Aesculus californica','Arbutus menziesii','Notholithocarpus densiflorus','Pseudotsuga menziesii','Quercus agrifolia','Quercus douglasii','Quercus garryana','Quercus kelloggii','Quercus lobata','Sequoia sempervirens','Umbellularia california')
+sci.names <- c('Adenostoma fasciculatum','Acer macrophyllum','Aesculus californica','Arbutus menziesii','Notholithocarpus densiflorus','Pseudotsuga menziesii','Quercus agrifolia','Quercus douglasii','Quercus garryana','Quercus kelloggii','Quercus lobata','Sequoia sempervirens','Umbellularia californica')
 
 write.csv(cbind(sci.names,round(niche[,c(1,2)],0),round(niche[,c(4,5)],3)),'data/pwd_niche_means.csv')
 

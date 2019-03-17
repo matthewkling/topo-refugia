@@ -56,8 +56,8 @@ sfits <- list()
 # cspace is an orthogonal matrix spanning the range of cwd and tmin vals, to visualize model fit
 summary(hypv$cwd8110)
 summary(hypv$model3)
-cvals <- seq(0,1500,length.out = 100)
-tvals <- seq(-2,8,length.out = 100)
+cvals <- seq(min(hypv$cwd8110,na.rm=T),max(hypv$cwd8110,na.rm=T),length.out = 100)
+tvals <- seq(min(hypv$model3,na.rm=T),max(hypv$model3,na.rm=T),length.out = 100)
 cspace <- data.frame(matrix(NA,nrow=length(cvals)*length(tvals),ncol=(2+length(species))))
 dim(cspace)
 names(cspace) <- c('cwd8110','model3',paste0(species,'_pred'))
@@ -102,10 +102,15 @@ plot(fit_max[,c('cwd_opt','cwd.mean')])
 write.csv(fit_max,'data/pwd_gam1.csv')
 
 species
-sp=species[1]
+sp=species[12]
 message(sp)
 plot(cspace[,c('cwd8110',paste0(sp,"_pred"))])
+plot(hypv[rsamp,c('cwd8110',paste0(sp,"_pred"))])
+plot(hypv[rsamp,c('cwd8110',paste0(sp))])
+
 plot(cspace[,c('model3',paste0(sp,"_pred"))])
+plot(hypv[rsamp,c('model3',paste0(sp,"_pred"))])
+plot(hypv[rsamp,c('model3',paste0(sp))])
 
 plot(hypv[rsamp,c('southness',paste0(sp,"_pred"))])
 plot(hypv[rsamp,c('topoid',paste0(sp,"_pred"))])
