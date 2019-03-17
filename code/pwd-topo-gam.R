@@ -10,6 +10,7 @@ hyp <- readRDS('data/pwd_hyp_topo.Rdata')
 names(hyp)
 dim(hyp)
 
+
 # sum proportional occurrence for the woody plant columns
 hyp$woodyt <- apply(hyp[,15:27],1,sum) 
 
@@ -42,23 +43,24 @@ cor(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model
 # topoid and model3
 
 # concepts to capture
-#Model 1
-# for using model based approach to get niche modes, use topography, as it's agnostic to causes
-
 # exposure - pick either cwd8110 or southness; cwd has advantage that we can change value for futures
 # hilltop-valley bottom - used model3 as units are temp and we can explore futures (if the causal factor influencing hilltop-valley bottom distributions is temp; if it's water accumulation, then use topoid or TIP1k and we would keep it fixed for futures)
 
-# gam model
-xx <- complete.cases(hypv[,c('Shrubland','southness','topoid')])
-fit1 <- gam(Shrubland ~ s(c(southness,topoid), k=2), data=hypv[xx,], family=binomial(logit))
-d$fit <- predict(fit, d, type="response")
 
 
-#Model2 - for modeling futures under hypothetical cwd and temp change, but requires a stronger causal argument that these factors underly distributions
 
-# exposure - pick either cwd8110 or southness; cwd has advantage that we can change value for futures
-# hilltop-valley bottom - used model3 as units are temp and we can explore futures (if the causal factor influencing hilltop-valley bottom distributions is temp; if it's water accumulation, then use topoid or TIP1k and we would keep it fixed for futures)
 
-# gam model
-fit2 <- gam(Shrubland ~ s(c(cwd8110,model3), k=2), data=d, family=binomial(logit))
-d$fit <- predict(fit, d, type="response")
+species <- c("Maple", "Buckeye", "Madrone", "Tanoak", "Doug.fir", "Redwood",
+             "Coast.live.oak", "Blue.oak", "Oregon.oak", "Black.oak", "Valley.oak")
+
+# define model predictors
+vars <- c("cwd8110", "model3")
+
+
+# construct formula, fit gam, add model predictions to data frame
+for(sp in species){
+      message(sp)
+      formula <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + ")))
+      fit <- gam(formula, data=hypv, family=binomial(logit))
+      hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
+}
