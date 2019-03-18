@@ -1,6 +1,31 @@
 ## compare PWD and regional means
 rm(list=ls())
 
+
+names <- read.csv('data/names.csv',as.is=T) %>% 
+      select(Sci.name, Common.name, Plot.abb)
+pwdgam <- read.csv('data/pwd_gam1.csv',as.is=T) %>% 
+      rename(Sci.name = sci.names) %>% 
+      select(-X)
+pwdtopo <- read.csv('data/pwd_niche_means.csv',as.is=T) %>% 
+      rename(Sci.name = sci.names) %>% 
+      select(-X, -Hyp.name)
+reg <- read.csv('data/regional_niche_stats.csv',as.is=T) %>% 
+      rename(Sci.name = species) %>% 
+      mutate(stat = paste0("reg.cwd.", stat)) %>%
+      spread(stat, clim)
+
+d <- names %>%
+      left_join(pwdgam) %>%
+      left_join(pwdtopo) %>%
+      left_join(reg)
+
+
+
+stop("deprecated code below")
+
+
+
 names <- read.csv('data/names.csv',as.is=T)
 names
 
