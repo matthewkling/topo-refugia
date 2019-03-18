@@ -1,4 +1,4 @@
-# Pepperwood tree distribution GAM analysis
+# Pepperwood tree distribution GAM analysis - evaluation of model results
 
 rm(list=ls())
 library(tidyverse)
@@ -37,6 +37,7 @@ names(hypv)
 
 
 species <- c("Shrubland","Maple", "Buckeye", "Madrone","Tanoak", "Doug.fir","Coast.live.oak", "Blue.oak", "Oregon.oak", "Black.oak", "Valley.oak","Redwood","Bay")
+species==names(hypv)[15:27]
 sci.names <- c('Adenostoma fasciculatum','Acer macrophyllum','Aesculus californica','Arbutus menziesii','Notholithocarpus densiflorus','Pseudotsuga menziesii','Quercus agrifolia','Quercus douglasii','Quercus garryana','Quercus kelloggii','Quercus lobata','Sequoia sempervirens','Umbellularia californica')
 cbind(species,sci.names)
 
@@ -44,8 +45,7 @@ cbind(species,sci.names)
 vars <- c("cwd8110", "model3")
 
 # read in gam model outputs
-gfits <- readRDS('big_data/')
-
+gfits <- readRDS('big_data/gam_fits.Rdata')
 
 # cspace is an orthogonal matrix spanning the range of cwd and tmin vals, to visualize model fit
 summary(hypv$cwd8110)
@@ -59,7 +59,11 @@ cspace$cwd8110 <- rep(cvals,100)
 cspace$model3 <- rep(tvals,each=100)
 head(cspace)
 
+sfits <- list()
+i=1
 for(i in 1:length(species)){
+  sp <- species[i]
+  message(sp)
   fit <- gfits[[i]]
   hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
   cspace[,paste0(sp, "_pred")] <- predict(fit,cspace,type="response")
@@ -68,27 +72,29 @@ for(i in 1:length(species)){
 
 # extract summaries and model fits from gam models
 # define model predictors
-gam_niche <- data.frame(species,cwd_opt=NA,tmin_opt=NA,pmax=NA,dev.expl=NA,cwd.chisq=NA,tmin.chisq=NA,cwd.gam.mean=NA,tmin.gam.mean=NA)
+gam_niche <- data.frame(species,sci.names,gam.tabund=NA,cwd.opt=NA,tmin.opt=NA,cwd.gam.mean=NA,tmin.gam.mean=NA,hypv.pmax=NA,cspace.pmax=NA,dev.expl=NA,cwd.chisq=NA,tmin.chisq=NA)
 
 i=1
 for (i in 1:length(species)) {
   sp <- species[i]
   message(sp)
-  wm <- which.max(cspace[,paste0(sp,"_pred")])
-  fit_max[fit_max$species==sp,'cwd_opt'] <- cspace$cwd8110[wm]
-  fit_max[fit_max$species==sp,'tmin_opt'] <- cspace$model3[wm]
-  fit_max[fit_max$species==sp,'pmax'] <- cspace[wm,paste0(sp,"_pred")]
-  fit_max[fit_max$species==sp,'dev.expl'] <- summary(fits[[i]])$dev.expl
-  fit_max[fit_max$species==sp,c('cwd.chisq','tmin.chisq')] <- summary(fits[[i]])$chi.sq
-  fit_max[fit_max$species==sp,'cwd.mean'] <- weighted.mean(hypv$cwd8110[rsamp],hypv[rsamp,paste0(sp,"_pred")],na.rm=T)
-  fit_max[fit_max$species==sp,'tmin.mean'] <- weighted.mean(hypv$model3,hypv[,paste0(sp,"_pred")],na.rm=T)
-  }
+  gam_niche$gam.tabund[i] <- sum(hypv[,paste0(sp,"_pred")],na.rm=T)
+  cwm <- which.max(cspace[,paste0(sp,"_pred")])
+  pwm <- which.max(hypv[,paste0(sp,"_pred")])
+  gam_niche$cwd.opt[i] <- cspace$cwd8110[cwm]
+  gam_niche$tmin.opt[i] <- cspace$model3[cwm]
+  gam_niche$cwd.gam.mean[i] <- weighted.mean(hypv$cwd8110,hypv[,paste0(sp,"_pred")],na.rm=T)
+  gam_niche$tmin.gam.mean[i] <- weighted.mean(hypv$model3,hypv[,paste0(sp,"_pred")],na.rm=T)
+  gam_niche$hypv.pmax[i] <- hypv[pwm,paste0(sp,"_pred")]
+  gam_niche$cspace.pmax[i] <- cspace[cwm,paste0(sp,"_pred")]
+  gam_niche$dev.expl[i] <- sfits[[i]]$dev.expl
+  gam_niche[i,c('cwd.chisq','tmin.chisq')] <- sfits[[i]]$chi.sq
+}
+gam_niche
 
-fit_max[order(fit_max$cwd_opt),]
-fit_max[order(fit_max$tmin_opt),]
-plot(fit_max[,c('tmin_opt','tmin.mean')])
-plot(fit_max[,c('cwd_opt','cwd.mean')])
-write.csv(fit_max,'data/pwd_gam1.csv')
+pairs(gam_niche[,c('cwd.opt','cwd.gam.mean','tmin.opt','tmin.gam.mean')])
+cor(gam_niche[,c('cwd.opt','cwd.gam.mean','tmin.opt','tmin.gam.mean')])
+write.csv(gam_niche,'data/pwd_gam1.csv')
 
 species
 sp=species[12]
