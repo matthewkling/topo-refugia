@@ -1,4 +1,5 @@
 ## compare PWD and regional means
+rm(list=ls())
 
 names <- read.csv('data/names.csv',as.is=T)
 names
@@ -9,6 +10,11 @@ pwdgam$sci.name <- names$Sci.name[match(pwdgam$species,names$Hyp.name)]
 
 pwd <- read.csv('data/pwd_niche_means.csv',as.is=T)
 pwd
+
+pwdm <- merge(pwdgam,pwd,by.x='sci.name',by.y='sci.names')
+pwdm
+names(pwdm)
+pairs(pwdm[,c('cwd_opt','cwd.mean.x','cwd.mean.y','cwd.occ.even','south.mean','south.occ.even')])
 
 reg <- read.csv('data/regional_niche_stats.csv',as.is=T)
 reg

@@ -24,9 +24,7 @@ dim(hyp)
 #tapply(hyp$Grassland,hyp$Grassland_X,max,na.rm=T)
 
 # Look at distribution of values - mostly fall on the 1/25 sequence, but some in between. These would be due to edges and non-native types excluded from denominator in the aggregation step of the hyperspectral
-
-# slow plot, uncomment to see
-#plot(sort(hyp$Grassland[hyp$Grassland!=0]))
+plot(sort(hyp$Grassland[hyp$Grassland!=0]))
 
 ## THERE"S SOMETHING WRONG WITH THE '_X' variables - ignoring them for now
 # They are supposed to be the binary species assignment, based on most common 
@@ -52,10 +50,7 @@ length(intersect(which(!is.na(hyp$southness)), which(!is.na(hyp$cwd8110))))
 # something weird here - complete.cases is longer than either column. But this shows that southness has fewer cases and is a subset of cwd, so we'll use that to subset data.frame
 
 # subset data frame
-env.complete <- intersect(which(!is.na(hyp$southness)) , which(!is.na(hyp$topoid)))
-hypv <- hyp[intersect(which(hyp$woodyt>=0.5) , env.complete),]
-dim(hypv)
-hypv <- hypv[-which(hypv$rock.group=='ultra'),]
+hypv <- hyp[intersect(which(hyp$woodyt>=0.5) , which(!is.na(hyp$southness))),]
 dim(hypv)
 names(hypv)
 
@@ -69,42 +64,146 @@ rsamp <- sample(nrow(hypv),10000)
 plot(hypv[rsamp,c('southness','cwd8110')])
 plot(hypv[rsamp,c('topoid','model3')])
 
+# set up bins for niche means
+# this is evenly spaced bins from environment factor histogram
+summary(hypv$cwd8110)
+cwd.even <- hist(hypv$cwd8110,breaks=c(seq(325,1425,by=50)))
+cwd.even$breaks
+cwd.even$counts
+cwd.even
+hypv$cwd.even.fac <- cut(hypv$cwd8110,cwd.even$breaks)
 
-## calculate niche means by direct averaging of environmental values for all pixels, weighted by specieas occurrence in the pixel. Not using 'X' vars
+summary(hypv$southness)
+south.even <- hist(hypv$southness,breaks=c(seq(-0.75,0.7,by=0.05)))
+south.even$breaks
+south.even$counts
+hypv$south.even.fac <- cut(hypv$southness,south.even$breaks)
+length(south.even.fac)
 
-# names from hyperspectral data set, and then set up scientific name vector
-(Hyp.name=names(hypv[,15:27]))
-sci.names <- c('Adenostoma fasciculatum','Acer macrophyllum','Aesculus californica','Arbutus menziesii','Notholithocarpus densiflorus','Pseudotsuga menziesii','Quercus agrifolia','Quercus douglasii','Quercus garryana','Quercus kelloggii','Quercus lobata','Sequoia sempervirens','Umbellularia californica')
+summary(hypv$topoid)
+topoid.even <- hist(hypv$topoid,breaks=c(seq(0,25,by=0.5)))
+topoid.even$breaks
+topoid.even$counts
 
-niche <- data.frame(Hyp.name,sci.names,tot.abund=NA,cwd.mean=NA,south.mean=NA,topoid.mean=NA,model3.mean=NA)
-niche
+
+# sum veg occupancy by bins
+vegC <- data.frame(matrix(NA,nrow = length(cwd.even$counts),ncol=13))
+names(vegC) <- names(hypv[15:27])
+
+vegS <- data.frame(matrix(NA,nrow = length(south.even$counts),ncol=13))
+names(vegS) <- names(hypv[15:27])
+
+names(hypv)
+i=13
+for (i in 1:13) {
+  message(i)
+  vegC[,i] <- tapply(hypv[,14+i],hypv$cwd.even.fac,sum)
+  vegS[,i] <- tapply(hypv[,14+i],hypv$south.even.fac,sum)
+}
+vegC.tot <- apply(vegC,1,sum)
+vegS.tot <- apply(vegS,1,sum)
+
+# now order all pixels by sum of woody plant occupancies, and find breaks that divide them into 25 evenly weighted perentiles
+
+hyp.Csort <- hypv[order(hypv$cwd8110),]
+hyp.Csort$wcumsum <- cumsum(hypv$woodyt)
+plot(hyp.Csort$cwd8110)
+
+head(hyp.Csort$wcumsum)
+tail(hyp.Csort$wcumsum)
+wcs.tot <- sum(hyp.Csort$woodyt)
+
+cwd.breaks <- rep(NA,26)
+for (i in 1:26) cwd.breaks[i] <- which(hyp.Csort$wcumsum>=(i-1)/25*wcs.tot)[1]
+cwd.breaks
+hyp.Csort$cwd.breaks.fac <- cut(hyp.Csort$cwd8110,breaks=hyp.Csort$cwd8110[cwd.breaks])
+table(hyp.Csort$cwd.breaks.fac)
+
+cwd.occ.perc.mids <- rep(NA,25)
+for (i in 1:25) cwd.occ.perc.mids[i] <- mean(hyp.Csort$cwd8110[cwd.breaks[i]:cwd.breaks[i+1]])
+cwd.occ.perc.mids
+
+vegC.occ.perc <- data.frame(matrix(NA,nrow = length(cwd.occ.perc.mids),ncol=13))
+names(vegC.occ.perc) <- names(hypv[15:27])
 
 i=1
 for (i in 1:13) {
-  sp <- Hyp.name[i]
-  message(sp)
-  niche$tot.abund[i] <- sum(hypv[,sp])
-  niche$cwd.mean[i] <- weighted.mean(hypv$cwd8110,hypv[,sp])
-  niche$south.mean[i] <- weighted.mean(hypv$southness,hypv[,sp])
-  niche$topoid.mean[i] <- weighted.mean(hypv$topoid,hypv[,sp])
-  niche$model3.mean[i] <- weighted.mean(hypv$model3,hypv[,sp])
+  vegC.occ.perc[,i] <- tapply(hyp.Csort[,14+i],hyp.Csort$cwd.breaks.fac,sum)
+}
+vegC.occ.perc
+vegC.occ.perc$tot <- apply(vegC.occ.perc,1,sum)
+
+## calculate absolute and fractionally weighted cwd means by veg
+# decision is to use fractional weights as much as possible
+# three methods to calculate niche mean. Can do each one for cwd and for southness
+#     1 Weighted mean of cwd, weighted by veg fraction
+#     2 mean, weighted by percent occupancy within bins, with even bins
+#     3 mean, weighted by % occupancy, with percentile bins so each one has same percentage of total distribution - not sure yet how to do this with fractional percentages
+
+niche <- data.frame(matrix(NA,13,8))
+names(niche) <- c('cwd.mean','cwd.occ.even','cwd.occ.perc','south.mean','south.occ.even','south.occ.perc','cwd.count','cwd.frac')
+row.names(niche) <- names(hypv[,15:27])
+
+i=1
+for (i in 1:13) {
+  niche$cwd.mean[i] <- weighted.mean(hypv$cwd8110,hypv[,14+i])
+  niche$cwd.occ.even[i] <- weighted.mean(cwd.even$mids,vegC[,i]/vegC.tot)
+  niche$cwd.occ.perc[i] <- weighted.mean(cwd.occ.perc.mids,vegC.occ.perc[,i]/vegC.occ.perc$tot)
+  
+  niche$south.mean[i] <- weighted.mean(hypv$southness,hypv[,14+i])
+  niche$south.occ.even[i] <- weighted.mean(south.even$mids,vegS[,i]/vegS.tot)
+  
+  {
+    # from previous test calculations
+  #niche$cwdX[i] <- weighted.mean(hypv$cwd8110,hypv[,28+i])
+    niche$cwd.count[i] <- weighted.mean(cwd.breaks$mids,vegC[,i])
+   #niche$cwdX.frac[i] <- weighted.mean(cwdb$mids,vegCX[,i]/cwdb$counts)
+    niche$cwd.frac[i] <- weighted.mean(cwd.breaks$mids,vegC[,i]/cwd.breaks$counts)
+  }
 }
 niche
-pairs(niche[,4:7])
-cor(niche[,4:7])
+pairs(niche[,c(1,2,4,5)])
 
+pdf('figures/pwd_cwdfrachist.pdf',8,20)
+op=par(mfrow=c(14,1),mar=c(3,3,0,0))
+for (i in 1:13) barplot(vegC[,i]/cwd.even$counts)
+par(op)
+dev.off()
+
+pdf('figures/pwd_cwdhist.pdf',8,20)
+op=par(mfrow=c(13,1),mar=c(3,3,0,0))
+for (i in 1:14) barplot(vegC[,i])
+par(op)
+dev.off()
+
+pdf('figures/pwd_southfrachist.pdf',8,20)
+op=par(mfrow=c(13,1),mar=c(3,3,0,0))
+for (i in 1:14) barplot(vegS[,i]/south.even$counts)
+par(op)
+dev.off()
+
+pdf('figures/pwd_southhist.pdf',8,20)
+op=par(mfrow=c(13,1),mar=c(3,3,0,0))
+for (i in 1:14) barplot(vegS[,i])
+par(op)
+dev.off()
 
 pdf('figures/pwd_topo_nichepairs.pdf',8,8)
-pairs(niche[,4:7])
+#op=par(mfrow=c(14,1),mar=c(3,3,0,0))
+pairs(niche[,c(1,2,4,5)])
+#par(op)
 dev.off()
-system('open figures/pwd_topo_nichepairs.pdf')
-rownames(niche)
 
-write.csv(niche,'data/pwd_niche_means.csv')
+rownames(niche)
+sci.names <- c('Adenostoma fasciculatum','Acer macrophyllum','Aesculus californica','Arbutus menziesii','Notholithocarpus densiflorus','Pseudotsuga menziesii','Quercus agrifolia','Quercus douglasii','Quercus garryana','Quercus kelloggii','Quercus lobata','Sequoia sempervirens','Umbellularia californica')
+
+write.csv(cbind(sci.names,round(niche[,c(1,2)],0),round(niche[,c(4,5)],3)),'data/pwd_niche_means.csv')
+
+round(niche[,c(1,2,5,4)],0)
 
 
 ## does niche mean shift across rock types?
-if (FALSE) {
+{
   table(hypv$rock.group)
   
   niche$cwd.block <- NA
