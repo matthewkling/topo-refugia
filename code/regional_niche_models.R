@@ -1,3 +1,4 @@
+
 # This script fits climatic niche models for Pepperwood tree species
 # using CHELSA climate data and FIA and CCH occurrence data
 
@@ -19,21 +20,8 @@ spp <- c("Acer macrophyllum", "Aesculus californica", "Arbutus menziesii",
          "Quercus lobata", "Sequoia sempervirens", "Umbellularia californica")
 
 # climate data
-if(F){
-      clim <- list.files("big_data/climate/raw", full.names=T) %>%
-            stack()
-      names(clim) <- c("cwd", "ppt", "bio5", "bio6")
-      usa <- raster::getData("GADM", country="USA", level=1)
-      usa <- usa[! usa$NAME_1 %in% c("Alaska", "Hawaii"),]
-      clim <- crop(clim, usa)
-      clim <- mask(clim, usa)
-      clim <- crop(clim, extent(-124.7668, -95, 24.51653, 49.38319 ))
-      clim$ppt <- log10(clim$ppt)
-      writeRaster(clim, "big_data/climate/climate.tif", overwrite=T)
-}
-clim <- stack("big_data/climate/climate.tif")
-names(clim) <- c("cwd", "ppt", "bio5", "bio6")
-clim <- clim$cwd
+clim <- stack("f:/chelsa/toporefugia/historic/derived/historic.gri")
+clim$ppt <- log10(clim$ppt)
 
 
 # load fia data for focal species
@@ -69,60 +57,78 @@ for(sp in unique(c(fia$gs, cch$gs))){
       domain <- SpatialPolygons(list(Polygons(list(Polygon(hull)), ID=1))) %>%
             SpatialPolygonsDataFrame(data=data.frame(ID=1)) %>%
             gBuffer(width=5) # in degrees
-      bg <- clim %>%
+      sp_clim <- clim %>%
             mask(domain) %>% 
-            crop(domain) %>% 
+            crop(domain)
+      bg <- sp_clim %>% 
             values() %>% 
             na.omit() %>%
-            sample(10000)
+            as.data.frame() %>%
+            sample_n(10000)
       
       # presences
       fs <- sample_n(fs, min(nrow(fs), 10000))
       coordinates(fs) <- c("lon", "lat")
-      cs <- extract(clim, fs)
+      cs <- extract(sp_clim, fs) %>%
+            na.omit()
       
-      # fit a binomial GAM describing species occurrence as a function of climate
-      md <- data.frame(clim=cs, pres=1) %>%
-            rbind(data.frame(clim=bg, pres=0))
-      fit <- gam(pres ~ s(clim), data=md, family=binomial(logit))
-      
-      # grid approximation of response surface
-      results <- data.frame(clim=seq(0, round(max(values(clim), na.rm=T)), 1)) %>%
-            mutate(fit=predict(fit, ., type="response"),
-                   fit=fit/sum(fit, na.rm=T),
-                   species=sp) %>%
-            rbind(results)
+      # fit a separate model for each variable
+      for(var in names(clim)){
+            
+            # fit a binomial GAM describing species occurrence as a function of climate
+            md <- data.frame(value=cs[,var], pres=1) %>%
+                  rbind(data.frame(value=bg[,var], pres=0))
+            fit <- gam(pres ~ s(value), data=md, family=binomial(logit))
+            
+            # grid approximation of response surface
+            results <- data.frame(var=var, 
+                                  value=seq(min(md$value), max(md$value), length.out=1000)) %>%
+                  mutate(fit=predict(fit, ., type="response"),
+                         fit=fit/sum(fit, na.rm=T),
+                         species=sp) %>%
+                  rbind(results)
+      }
 }
 
 
 # summarize and plot results
 r <- results %>%
-      group_by(species) %>%
-      summarize(mean=weighted.mean(clim, fit),
-                median=clim[cumsum(fit)>.5][1],
-                max=clim[fit==max(fit)][1]) %>%
-      arrange(mean) %>%
-      mutate(species = factor(species, levels=species)) %>%
-      gather(stat, clim, mean:max)
-
-results <- mutate(results, species=factor(species, levels=levels(r$species)))
-
-p <- ggplot() +
-      geom_area(data=results, aes(clim, fit), fill="gray") +
-      geom_vline(data=r, aes(xintercept=clim, color=stat)) +
-      geom_text(data=r, aes(x=1500, y=max(results$fit)*.5, label=species),
-                hjust=1) +
-      facet_grid(species~.) +
-      xlim(0, 1500) +
-      labs(x="CWD (mm)",
-           y="relative frequency") +
-      theme_minimal() +
-      theme(legend.position="bottom", panel.grid=element_blank(),
-            strip.text=element_blank(), axis.ticks.y=element_blank(),
-            axis.text.y=element_blank(), axis.title.y=element_blank())
-ggsave("figures/regional_response_curves.png", p, width=8, height=8, units="in")
+      group_by(species, var) %>%
+      summarize(mean=weighted.mean(value, fit),
+                median=value[cumsum(fit)>.5][1],
+                max=value[fit==max(fit)][1]) %>%
+      ungroup()
 
 write.csv(r, "data/regional_niche_stats.csv", row.names = F)
+
+
+for(v in unique(r$var)){
+      rv <- r %>%
+            filter(var==v) %>%
+            arrange(mean) %>%
+            mutate(species = factor(species, levels=species)) %>%
+            gather(stat, value, mean:max)
+      
+      resultsv <- results %>%
+            filter(var==v) %>%
+            mutate(species=factor(species, levels=levels(rv$species)))
+      
+      p <- ggplot() +
+            geom_area(data=resultsv, aes(value, fit), fill="gray") +
+            geom_vline(data=rv, aes(xintercept=value, color=stat)) +
+            geom_text(data=rv, aes(x=max(resultsv$value), y=max(resultsv$fit)*.5, label=species),
+                      hjust=1) +
+            facet_grid(species~.) +
+            labs(x=v,
+                 y="relative frequency") +
+            theme_minimal() +
+            theme(legend.position="bottom", panel.grid=element_blank(),
+                  strip.text=element_blank(), axis.ticks.y=element_blank(),
+                  axis.text.y=element_blank(), axis.title.y=element_blank())
+      ggsave(paste0("figures/regional_response_curves/", v, ".png"), 
+             p, width=8, height=6, units="in")
+}
+
 
 
 
