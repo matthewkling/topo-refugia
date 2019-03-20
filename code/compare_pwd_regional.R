@@ -20,41 +20,10 @@ d <- names %>%
       left_join(pwdtopo) %>%
       left_join(reg)
 
-
-
-stop("deprecated code below")
-
-
-
-names <- read.csv('data/names.csv',as.is=T)
-names
-
-pwdgam <- read.csv('data/pwd_gam1.csv',as.is=T)
-pwdgam
-
-pwdtopo <- read.csv('data/pwd_niche_means.csv',as.is=T)
-pwdtopo
-
-pwd <- merge(pwdgam,pwdtopo)
-pwd
-all(pwd$species == pwd$Hyp.name)
-
-names(pwd)
-plot(pwd$tot.abund,pwd$gam.tabund)
-plot(pwd$hypv.pmax,pwd$cspace.pmax)
+names(d)
+plot(d$tot.abund,d$gam.tabund)
+plot(d$hypv.pmax,d$cspace.pmax)
 abline(0,1)
-
-
-reg <- read.csv('data/regional_niche_stats.csv',as.is=T)
-reg
-regx <- data.frame(sci.names=reg$species[which(reg$stat=='mean')],
-                   reg.cwd.mean=reg$clim[which(reg$stat=='mean')],
-                   reg.cwd.median=reg$clim[which(reg$stat=='median')],
-                   reg.cwd.max=reg$clim[which(reg$stat=='max')])
-regx
-
-pwd.reg <- merge(pwd,regx)
-names(pwd.reg)
 
 ## Variable name code
 # gam.tabund = sum of predicted values across PWD environmental space
@@ -76,11 +45,21 @@ names(pwd.reg)
 # reg.cwd.max = reginal CWD niche model, max
 
 # Have a look at scatterplots and correlations
-pairs(pwd.reg[,c('cwd.opt','cwd.gam.mean','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
-cor(pwd.reg[,c('cwd.opt','cwd.gam.mean','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
+pairs(d[,c('cwd.opt','cwd.gam.mean','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
+cor(d[,c('cwd.opt','cwd.gam.mean','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
 
-pairs(pwd.reg[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
-cor(pwd.reg[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
+# is lowest of these correlations significant? YES
+plot(cwd.opt~reg.cwd.mean,data=d,type='n',
+     xlab='Range-wide CWD mean (mm)',
+     ylab='Pepperwood CWD optimum (mm)')
+text(d$reg.cwd.mean,d$cwd.opt,labels=d$Plot.abb)
+fit <- lm(cwd.opt~reg.cwd.mean,data=d)
+abline(fit)
+#abline(0,1,lty=2)
+summary(fit)
+
+pairs(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
+cor(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
 
 
 
