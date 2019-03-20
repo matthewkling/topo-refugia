@@ -5,20 +5,26 @@
 library(tidyverse)
 library(raster)
 
-# load FIA and add climate data to each record
-fia <- read_csv("data/fia.csv") %>%
-      filter(!is.na(lon))
-coordinates(fia) <- c("lon", "lat")
-clim <- list.files("big_data/climate", full.names=T) %>%
-      raster()
-fia$cwd <- extract(clim, fia)
-fia <- as.data.frame(fia)
+# climate data
+clim <- stack("f:/chelsa/toporefugia/historic/derived/historic.gri")
+clim$ppt <- log10(clim$ppt)
 
 # load pepperwood boundary and get its climate
 pwd <- readOGR("data/PPshapefile-teale-albers", "Pepperwood")
 crs(pwd) <- crs("+proj=aea +datum=NAD83 +lat_1=34 +lat_2=40.5 +lat_0=0 +lon_0=-120 +x_0=0 +y_0=-4000000 +ellps=GRS80 +towgs84=0,0,0 ")
 pwd <- pwd %>% spTransform(crs(clim)) %>%
       extract(clim, .)
+pwd <- pwd[[1]]
+write_csv(as.data.frame(pwd), "data/pwd_climate_1km.csv")
+
+# load FIA and add climate data to each record
+fia <- read_csv("data/fia.csv") %>%
+      filter(!is.na(lon))
+coordinates(fia) <- c("lon", "lat")
+clim <- clim$cwd
+fia$cwd <- extract(clim, fia)
+fia <- as.data.frame(fia)
+
 
 # calculate northness
 d <- fia %>%
