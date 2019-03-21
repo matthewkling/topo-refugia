@@ -33,131 +33,94 @@ cch <- read_csv("E:/phycon/data/occurrences/California_Species_clean_All_epsg_33
       filter(gs %in% cch_spp)
 
 
+## climate data used to fit models
+climate <- stack("f:/chelsa/toporefugia/historic/derived/historic.gri")
+climate$ppt <- log10(climate$ppt)
 
-stop("incomplete code below")
+ext <- extent(climate)
+ext[2] <- -115
+clim <- crop(climate, ext)
+cor(values(clim), use="pairwise.complete.obs") %>% "^"(2) %>%
+      corrplot::corrplot(order="AOE")
+
+var_sets <- list(a=c("cwd", "aet", "tminmin"))
+clim <- climate[[unique(unlist(var_sets))]]
+
+
+## climate datsets for which to project suitability
+scen_files <- c("f:/chelsa/toporefugia/historic/derived/historic.gri",
+                list.files("f:/chelsa/toporefugia/future/derived", full.names=T, pattern="\\.gri"))
+scenarios <- scen_files %>%
+      lapply(stack) %>%
+      lapply(subset, subset=unique(unlist(var_sets))) %>%
+      lapply(function(x){
+            if(! "ppt" %in% names(x)) return(x)
+            x$ppt <- log10(x$ppt)
+            return(x)
+      }) %>%
+      lapply(values) %>%
+      lapply(as.data.frame)
+names(scenarios) <- basename(scen_files) %>% sub("\\.gri", "", .)
+
 
 
 # loop through species
-models <- list()
-results <- data.frame()
-for(sp in unique(fia$gs)){
+for(sp in unique(c(fia$gs, cch$gs))){
       message(sp)
       
       # species occurrences
-      fs <- filter(fia, gs==sp,
-                   lon < -95)
+      fs <- switch(as.character(sp %in% cch_spp), "TRUE"=cch, "FALSE"=fia) %>%
+            filter(gs==sp, lon < -95)
       
       # sample background pseudoabsence data in propotion to spatial climate frequency,
       # from buffer region around occurrence points
       hull <- fs %>%
             dplyr::select(lon, lat) %>%
-            chull() %>%
+            chull() %>% # fitting convex hull first to avoid buffering huge point set
             slice(fs, .) %>%
             dplyr::select(lon, lat) %>%
             as.matrix()
       domain <- SpatialPolygons(list(Polygons(list(Polygon(hull)), ID=1))) %>%
             SpatialPolygonsDataFrame(data=data.frame(ID=1)) %>%
             gBuffer(width=5) # in degrees
-      
-      bg <- clim %>%
-            crop(domain) %>% 
+      sp_clim <- clim %>%
             mask(domain) %>% 
+            crop(domain)
+      bg <- sp_clim %>% 
             values() %>% 
             na.omit() %>%
             as.data.frame() %>%
-            sample_n(10000) %>%
-            mutate(pres=0) %>%
-            sample_n(min(nrow(fs), 10000))
+            sample_n(10000)
       
       # presences
       fs <- sample_n(fs, min(nrow(fs), 10000))
       coordinates(fs) <- c("lon", "lat")
-      cs <- extract(clim, fs) %>%
-            as.data.frame() %>%
-            mutate(pres=1)
+      cs <- extract(sp_clim, fs) %>%
+            na.omit()
       
-      md <- rbind(bg, cs)
+      md <- rbind(cs %>% cbind(pres=1),
+                  bg %>% cbind(pres=0))
       
-      # fit a binomial GAM describing species occurrence as a function of climate
-      formula <- as.formula(paste0("pres ~ ", paste0("s(", names(clim), ")", collapse=" + ")))
-      fit <- gam(formula, data=md, family=binomial(logit), select=T)
-      #vis.gam(fit, c("cwd", "ppt"), theta=50, phi=50, type="response")
-      
-      # grid approximation of response surface, summary stats
-      n <- 31
-      g <- data.frame(row=1:n)
-      for(i in names(select(bg, -pres))){
-            g[,i] <- seq(min(bg[,i]), max(bg[,i]), length.out=n)
+      for(vars in names(var_sets)){
+            
+            # fit a binomial GAM describing species occurrence as a function of climate
+            formula <- as.formula(paste0("pres ~ ", paste0("s(", var_sets[[vars]], ")", collapse=" + ")))
+            fit <- gam(formula, data=md, family=binomial(logit))
+            saveRDS(fit, paste0("data/regional_distributions/models/",
+                                sp, "_", vars, ".rds"))
+            
+            # model predictions
+            for(scen in names(scenarios)){
+                  message(paste("      ", scen))
+                  
+                  pred <- predict(fit, scenarios[[scen]], type="response") %>% as.vector()
+                  template <- climate[[1]] 
+                  template[] <- pred
+                  writeRaster(template, paste0("data/regional_distributions/rasters/",
+                                               sp, "__", vars, "__", scen, ".tif"))
+            }
       }
-      g <- g %>% select(-row) %>% 
-            expand.grid() %>%
-            mutate(fit = predict(fit, ., type="response"))
-      
-      results <- g %>%
-            mutate(fit=fit/sum(fit, na.rm=T),
-                   species=sp) %>%
-            rbind(results)
-      
-      next()
-      
-      g %>%
-            filter(bio6 == bio6[fit==max(fit)],
-                   bio5 == bio5[fit==max(fit)]) %>%
-            ggplot(aes(cwd, ppt, fill=fit)) + 
-            geom_raster()
-      
-      g %>%
-            group_by(cwd, ppt) %>%
-            summarize(fit = mean(fit)) %>%
-            ggplot(aes(cwd, ppt, fill=fit)) + 
-            geom_raster()
 }
 
 
-# summarize and plot results
-mean <- results %>%
-      group_by(species) %>%
-      summarize_at(vars(cwd, ppt, bio5, bio6), 
-                   list(mean=weighted.mean), w=.$fit) %>%
-      gather(stat, value, -species)
 
-median <- results %>%
-      group_by(species) %>%
-      summarize_at(vars(cwd, ppt, bio5, bio6), 
-                   list(median=clim[cumsum(fit)>.5][1])) %>%
-      gather(stat, value, -species)
-
-mean <- results %>%
-      group_by(species) %>%
-      summarize_at(vars(cwd, ppt, bio5, bio6), 
-                   list(mean=weighted.mean), w=.$fit) %>%
-      gather(stat, value, -species)
-
-
-r <- results %>%
-      group_by(species) %>%
-      summarize(mean=weighted.mean(clim, fit),
-                median=clim[cumsum(fit)>.5][1],
-                max=clim[fit==max(fit)][1]) %>%
-      arrange(mean) %>%
-      mutate(species = factor(species, levels=species)) %>%
-      gather(stat, clim, mean:max)
-
-results <- mutate(results, species=factor(species, levels=levels(r$species)))
-
-p <- ggplot() +
-      geom_area(data=results, aes(clim, fit), fill="gray") +
-      geom_vline(data=r, aes(xintercept=clim, color=stat)) +
-      geom_text(data=r, aes(x=1500, y=max(results$fit)*.5, label=species),
-                hjust=1) +
-      facet_grid(species~.) +
-      xlim(0, 1500) +
-      labs(x="CWD (mm)",
-           y="relative frequency") +
-      theme_minimal() +
-      theme(legend.position="bottom", panel.grid=element_blank(),
-            strip.text=element_blank(), axis.ticks.y=element_blank(),
-            axis.text.y=element_blank(), axis.title.y=element_blank())
-ggsave("figures/regional_response_curves.png", p, width=8, height=8, units="in")
-
-write.csv(r, "data/regional_niche_stats.csv", row.names = F)
