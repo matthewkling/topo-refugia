@@ -7,6 +7,14 @@ library(raster)
 hyp <- readRDS('data/pwd_hyp_topo.Rdata')
 names(hyp)
 dim(hyp)
+nhyp <- length(which(!is.na(hyp$hpspp)))
+# area of hyperspectral image
+(nhyp * 4)/10000
+length(which(is.na(hyp$hpspp)))
+summary(hyp$hpspp)
+summary(hyp$elevation[which(!is.na(hyp$hpspp))])
+summary(hyp$southness[which(!is.na(hyp$hpspp))])
+summary(hyp$topoid[which(!is.na(hyp$hpspp))])
 
 # look at some of the data
 # hist(hyp$cwd8110)

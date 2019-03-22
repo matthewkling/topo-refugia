@@ -27,8 +27,10 @@ abline(0,1)
 
 ## Variable name code
 # gam.tabund = sum of predicted values across PWD environmental space
-# cwd.opt = PWD CWD value at peak of GAM model, from orthogonal espace
-# tmin.opt = PWD Tmin (model3) value at peak of GAM model, from orthogonal climate space
+# cwd.cspace.opt = PWD CWD value at peak of GAM model, from orthogonal espace
+# tmin.cspace.opt = PWD Tmin (model3) value at peak of GAM model, from orthogonal climate space
+# cwd.hypv.opt = PWD CWD value at peak of GAM model, from observed espace
+# tmin.hypv.opt = PWD Tmin (model3) value at peak of GAM model, from observed climate space
 # cwd.gam.mean = weighted mean CWD value based on GAM predicted values, across PWD espace
 # tmin.gam.mean = weighted mean Tmin value based on GAM predicted values, across PWD espace
 # hypv.pmax = maximum predicted value across PWD espace
@@ -45,18 +47,36 @@ abline(0,1)
 # reg.cwd.max = reginal CWD niche model, max
 
 # Have a look at scatterplots and correlations
-pairs(d[,c('cwd.opt','cwd.gam.mean','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
-cor(d[,c('cwd.opt','cwd.gam.mean','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
+pairs(d[,c('cwd.cspace.opt','cwd.hypv.opt','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
+cor(d[,c('cwd.cspace.opt','cwd.hypv.opt','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
 
 # is lowest of these correlations significant? YES
-plot(cwd.opt~reg.cwd.mean,data=d,type='n',
+op=par(mfrow=c(2,1))
+plot(cwd.hypv.opt~reg.cwd.mean,data=d,type='n',
      xlab='Range-wide CWD mean (mm)',
      ylab='Pepperwood CWD optimum (mm)')
-text(d$reg.cwd.mean,d$cwd.opt,labels=d$Plot.abb)
-fit <- lm(cwd.opt~reg.cwd.mean,data=d)
+text(d$reg.cwd.mean,d$cwd.hypv.opt,labels=d$Plot.abb)
+fit <- lm(cwd.hypv.opt~reg.cwd.mean,data=d)
 abline(fit)
 #abline(0,1,lty=2)
 summary(fit)
+cor(d$reg.cwd.mean,d$cwd.hypv.opt)
+
+
+plot(south.mean~reg.cwd.mean,data=d,type='n',
+     xlab='Range-wide CWD mean (mm)',
+     ylab='Pepperwood southness')
+text(d$reg.cwd.mean,d$south.mean,labels=d$Plot.abb)
+fit <- lm(south.mean~reg.cwd.mean,data=d)
+abline(fit)
+#abline(0,1,lty=2)
+summary(fit)
+cor(d$reg.cwd.mean,d$south.mean)
+par(op)
+
+d$Common.name
+
+write.csv(cbind(d[,c('Sci.name','Common.name','Plot.abb')],100*round(d$tot.abund/sum(d$tot.abund),3)),'data/table1.csv',quote=F)
 
 pairs(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
 cor(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])

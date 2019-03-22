@@ -70,9 +70,17 @@ for(i in 1:length(species)){
   sfits[[i]] <- summary(fit)
 }
 
+# plot gams
+names(cspace)
+wm <- which(cspace$model3==unique(cspace$model3)[51])
+(maxp <- max(cspace[wm,3:15]))
+pall <- rainbow(13)
+plot(cspace$cwd8110[wm],cspace[wm,3]/max(cspace[wm,3]),type='l',ylim=c(0,1),col=pall[1])
+for (i in 4:15) lines(cspace$cwd8110[wm],cspace[wm,i]/max(cspace[wm,i]),col=pall[i-3])
+
 # extract summaries and model fits from gam models
 # define model predictors
-gam_niche <- data.frame(species,sci.names,gam.tabund=NA,cwd.opt=NA,tmin.opt=NA,cwd.gam.mean=NA,tmin.gam.mean=NA,hypv.pmax=NA,cspace.pmax=NA,dev.expl=NA,cwd.chisq=NA,tmin.chisq=NA)
+gam_niche <- data.frame(species,sci.names,gam.tabund=NA,cwd.cspace.opt=NA,tmin.cspace.opt=NA,cwd.hypv.opt=NA,tmin.hypv.opt=NA,cwd.gam.mean=NA,tmin.gam.mean=NA,hypv.pmax=NA,cspace.pmax=NA,dev.expl=NA,cwd.chisq=NA,tmin.chisq=NA)
 
 i=1
 for (i in 1:length(species)) {
@@ -81,8 +89,10 @@ for (i in 1:length(species)) {
   gam_niche$gam.tabund[i] <- sum(hypv[,paste0(sp,"_pred")],na.rm=T)
   cwm <- which.max(cspace[,paste0(sp,"_pred")])
   pwm <- which.max(hypv[,paste0(sp,"_pred")])
-  gam_niche$cwd.opt[i] <- cspace$cwd8110[cwm]
-  gam_niche$tmin.opt[i] <- cspace$model3[cwm]
+  gam_niche$cwd.cspace.opt[i] <- cspace$cwd8110[cwm]
+  gam_niche$tmin.cspace.opt[i] <- cspace$model3[cwm]
+  gam_niche$cwd.hypv.opt[i] <- hypv$cwd8110[pwm]
+  gam_niche$tmin.hypv.opt[i] <- hypv$model3[pwm]
   gam_niche$cwd.gam.mean[i] <- weighted.mean(hypv$cwd8110,hypv[,paste0(sp,"_pred")],na.rm=T)
   gam_niche$tmin.gam.mean[i] <- weighted.mean(hypv$model3,hypv[,paste0(sp,"_pred")],na.rm=T)
   gam_niche$hypv.pmax[i] <- hypv[pwm,paste0(sp,"_pred")]
@@ -91,9 +101,10 @@ for (i in 1:length(species)) {
   gam_niche[i,c('cwd.chisq','tmin.chisq')] <- sfits[[i]]$chi.sq
 }
 gam_niche
+range(gam_niche$dev.expl)
 
-pairs(gam_niche[,c('cwd.opt','cwd.gam.mean','tmin.opt','tmin.gam.mean')])
-cor(gam_niche[,c('cwd.opt','cwd.gam.mean','tmin.opt','tmin.gam.mean')])
+pairs(gam_niche[,c('cwd.cspace.opt','cwd.gam.mean','tmin.cspace.opt','tmin.gam.mean')])
+cor(gam_niche[,c('cwd.cspace.opt','cwd.gam.mean','tmin.cspace.opt','tmin.gam.mean')])
 write.csv(gam_niche,'data/pwd_gam1.csv')
 
 species
@@ -115,6 +126,11 @@ plot(hypv[rsamp,c('southness','topoid')])
 head(cspace)
 cspace$pwoody <- apply(cspace[,grep('pred',names(cspace))],1,sum)
 hist(cspace$pwoody)
+
+# plot GAM models on top of each other
+midTmin <- median(cspace)
+
+
 
 #### LATER
 # models with geology

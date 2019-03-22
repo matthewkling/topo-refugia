@@ -1,0 +1,14 @@
+,Sci.name,Common.name,Plot.abb,100 * round(d$tot.abund/sum(d$tot.abund), 3)
+1,Adenostoma fasciculatum,Chamise,Af,12.7
+2,Acer macrophyllum,Big leaf maplle,Am,2
+3,Aesculus californica,California buckeye,Ac,0.5
+4,Arbutus menziesii,Madrone,Az,11.7
+5,Notholithocarpus densiflorus,Tanoak,Nd,1.6
+6,Pseudotsuga menziesii,Douglas fir,Pm,22.9
+7,Quercus agrifolia,Coast live oak,Qa,17.3
+8,Quercus douglasii,Blue oak,Qd,2.4
+9,Quercus garryana,Oregon oak,Qg,14.9
+10,Quercus kelloggii,Black oak,Qk,2.5
+11,Quercus lobata,Valley oak,Ql,4.5
+12,Sequoia sempervirens,Redood,Ss,0.9
+13,Umbellularia californica,California bay,Uc,6.1
