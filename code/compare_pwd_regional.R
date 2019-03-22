@@ -1,6 +1,7 @@
 ## compare PWD and regional means
 rm(list=ls())
 library(tidyverse)
+select <- dplyr::select
 
 names <- read.csv('data/names.csv',as.is=T) %>% 
       select(Sci.name, Common.name, Plot.abb)
@@ -12,8 +13,10 @@ pwdtopo <- read.csv('data/pwd_niche_means.csv',as.is=T) %>%
       select(-X, -Hyp.name)
 reg <- read.csv('data/regional_niche_stats.csv',as.is=T) %>% 
       rename(Sci.name = species) %>% 
-      mutate(stat = paste0("reg.cwd.", stat)) %>%
-      spread(stat, clim)
+      gather(summary, value, mean:max) %>%
+      unite(stat, var, summary) %>%
+      mutate(stat = paste0("reg.", stat)) %>%
+      spread(stat, value)
 
 d <- names %>%
       left_join(pwdgam) %>%
@@ -81,8 +84,23 @@ write.csv(cbind(d[,c('Sci.name','Common.name','Plot.abb')],100*round(d$tot.abund
 pairs(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
 cor(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
 
+plot(d$topoid.mean, d$south.mean)
 
 
+
+
+plot(south.mean~topoid.mean,data=d,type='n',
+     xlab='Pepperood topoid mean (mm)',
+     ylab='Pepperwood southness')
+text(d$topoid.mean, d$south.mean,labels=d$Plot.abb)
+
+
+
+
+plot(reg.ppt_mean~topoid.mean,data=d,type='n',
+     xlab='Pepperood topoid mean (mm)',
+     ylab='Regional ppt mean (log10 mm)')
+text(d$topoid.mean, d$reg.ppt_mean,labels=d$Plot.abb)
 
 
 
