@@ -1,6 +1,6 @@
 ## compare PWD and regional means
 rm(list=ls())
-
+library(tidyverse)
 
 names <- read.csv('data/names.csv',as.is=T) %>% 
       select(Sci.name, Common.name, Plot.abb)
