@@ -109,15 +109,19 @@ for(sp in unique(c(fia$gs, cch$gs))){
             saveRDS(fit, paste0("data/regional_distributions/models/",
                                 sp, "_", vars, ".rds"))
             
-            # model predictions
+            # model predictions (the slow step)
             for(scen in names(scenarios)){
+                  outfile <- paste0("data/regional_distributions/rasters/",
+                                    sp, "__", vars, "__", scen, ".tif")
+                  if(file.exists(outfile)) next()
                   message(paste("      ", scen))
                   
                   pred <- predict(fit, scenarios[[scen]], type="response") %>% as.vector()
                   template <- climate[[1]] 
                   template[] <- pred
-                  writeRaster(template, paste0("data/regional_distributions/rasters/",
-                                               sp, "__", vars, "__", scen, ".tif"))
+                  writeRaster(template, 
+                              outfile,
+                              overwrite=T)
             }
       }
 }
