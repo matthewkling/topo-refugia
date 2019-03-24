@@ -52,8 +52,13 @@ species <- c("Shrubland","Maple", "Buckeye", "Madrone","Tanoak", "Doug.fir","Coa
 sci.names <- c('Adenostoma fasciculatum','Acer macrophyllum','Aesculus californica','Arbutus menziesii','Notholithocarpus densiflorus','Pseudotsuga menziesii','Quercus agrifolia','Quercus douglasii','Quercus garryana','Quercus kelloggii','Quercus lobata','Sequoia sempervirens','Umbellularia californica')
 cbind(species,sci.names)
 
-vars <- c("cwd8110", "model3")
+# set up orthogonal environmental space spanning range of variables
+cr <- seq(min(hypv$cwd8110,na.rm=T),max(hypv$cwd8110,na.rm=T),length.out = 100)
+tr <- seq(min(hypv$model3,na.rm=T),max(hypv$model3,na.rm=T),length.out = 100)
+cspace <- data.frame(cwd8110=rep(cr,100),model3=rep(tr,each=100))
 
+# bivariate gams
+vars <- c("cwd8110", "model3")
 
 # save models for predictions and projections on future scenarios
 gfits <- list()
@@ -69,5 +74,25 @@ for(i in 1:length(species)){
   cspace[,paste0(sp, "_pred")] <- predict(fit,cspace,type="response")
   gfits[[i]] <- fit
 }
-saveRDS(gfits,'big_data/gam_fits.Rdata')
+saveRDS(gfits,'big_data/pwd_gam2_fits.Rdata')
 
+
+# Now fit univariate cwd and southness gams and save models
+# univariate gams
+vars <- c("cwd8110")
+
+# save models for predictions and projections on future scenarios
+gfits <- list()
+
+# construct formula, fit gam, add model predictions to data frame
+sp=species[1]
+for(i in 1:length(species)){
+  sp <- species[i]
+  message(sp)
+  formula <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + ")))
+  fit <- gam(formula, data=hypv, family=binomial(logit))
+  hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
+  cspace[,paste0(sp, "_pred")] <- predict(fit,cspace,type="response")
+  gfits[[i]] <- fit
+}
+saveRDS(gfits,'big_data/pwd_gam1cwd_fits.Rdata')
