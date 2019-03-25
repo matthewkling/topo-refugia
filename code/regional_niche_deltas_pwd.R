@@ -168,3 +168,9 @@ deltas %>%
       ggplot(aes(randomforest, maxent, color=species)) + 
       geom_point() +
       facet_grid(scenario~var_set, scales="free")
+
+results %>%
+      group_by(scenario, cell) %>%
+      summarise_at(vars(cwd:jja), mean) %>%
+      write_csv("data/pwd_climate_1km.csv")
+      
