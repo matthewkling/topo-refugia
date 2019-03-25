@@ -55,46 +55,41 @@ cor(d[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd1.gam.mean','south.mean','reg.cwd_m
 
 # is lowest of these correlations significant? YES
 op=par(mfrow=c(2,1))
-plot(cwd.hypv.opt~reg.cwd.mean,data=d,type='n',
+plot(cwd1.hypv.opt~reg.cwd_mean,data=d,type='n',
      xlab='Range-wide CWD mean (mm)',
      ylab='Pepperwood CWD optimum (mm)')
-text(d$reg.cwd.mean,d$cwd.hypv.opt,labels=d$Plot.abb)
-fit <- lm(cwd.hypv.opt~reg.cwd.mean,data=d)
+text(d$reg.cwd_mean,d$cwd1.hypv.opt,labels=d$Plot.abb)
+fit <- lm(cwd1.hypv.opt~reg.cwd_mean,data=d)
 abline(fit)
 #abline(0,1,lty=2)
 summary(fit)
-cor(d$reg.cwd.mean,d$cwd.hypv.opt)
+cor(d$reg.cwd_mean,d$cwd1.hypv.opt)
 
 
-plot(south.mean~reg.cwd.mean,data=d,type='n',
+plot(south.mean~reg.cwd_mean,data=d,type='n',
      xlab='Range-wide CWD mean (mm)',
      ylab='Pepperwood southness')
-text(d$reg.cwd.mean,d$south.mean,labels=d$Plot.abb)
-fit <- lm(south.mean~reg.cwd.mean,data=d)
+text(d$reg.cwd_mean,d$south.mean,labels=d$Plot.abb)
+fit <- lm(south.mean~reg.cwd_mean,data=d)
 abline(fit)
 #abline(0,1,lty=2)
 summary(fit)
-cor(d$reg.cwd.mean,d$south.mean)
+cor(d$reg.cwd_mean,d$south.mean)
 par(op)
 
 d$Common.name
 
-write.csv(cbind(d[,c('Sci.name','Common.name','Plot.abb')],100*round(d$tot.abund/sum(d$tot.abund),3)),'data/table1.csv',quote=F)
+#write.csv(cbind(d[,c('Sci.name','Common.name','Plot.abb')],100*round(d$tot.abund/sum(d$tot.abund),3)),'data/table1.csv',quote=F)
 
-pairs(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
-cor(d[,c('tmin.opt','tmin.gam.mean','model3.mean','topoid.mean','reg.cwd.mean')])
-
-plot(d$topoid.mean, d$south.mean)
-
-
+names(d)
+pairs(d[,c('tmin2.hypv.opt','tmin2.gam.mean','topoid.mean','reg.cwd_mean')])
+cor(d[,c('tmin2.hypv.opt','tmin2.gam.mean','topoid.mean','reg.cwd_mean')])
 
 
 plot(south.mean~topoid.mean,data=d,type='n',
      xlab='Pepperood topoid mean (mm)',
      ylab='Pepperwood southness')
 text(d$topoid.mean, d$south.mean,labels=d$Plot.abb)
-
-
 
 
 plot(reg.ppt_mean~topoid.mean,data=d,type='n',
@@ -117,20 +112,73 @@ deltas <- read.csv("data/pwd_niche_deltas.csv",as.is=T) %>%
       left_join(pwdgam) %>%
       left_join(pwdtopo) %>%
       separate(scenario, c("year", "rcp", "model"), sep="_")
+dim(deltas)
+names(deltas)
+unique(deltas$rcp)
 
-ggplot(deltas, aes(cwd.gam.mean, delta)) +
+ggplot(deltas, aes(cwd1.gam.mean, delta)) +
       geom_hline(yintercept=0, linetype=2) +
       geom_smooth(method=lm) +
-      geom_smooth(method=lm, level=0.50, alpha=1) +
+      geom_smooth(method=lm, level=0.5, alpha=1) +
       facet_grid(algorithm + var_set ~ model + rcp, scales="free") +
       geom_text(aes(label=Plot.abb), size=2) +
       theme_bw()
 
+algs <- unique(deltas$algorithm)
+rcps <- unique(deltas$rcp)
+models <- unique(deltas$model)
+vars <- unique(deltas$var_set)
 
+a=algs[1]
+r=rcps[1]
+m=models[1]
+v=vars[1]
+aa <- c()
+rr <- c()
+mm <- c()
+vv <- c()
+slps <- c()
+pvals <- c()
+for (a in algs)
+  for (r in rcps)
+  for (m in models)
+    for (v in vars){
+      aa <- c(aa,a);rr <- c(rr,r); mm <- c(mm,m);vv <- c(vv,v)      
+      xx <- deltas[deltas$algorithm==a & deltas$rcp == r & deltas$model==m & deltas$var_set == v,]
+      fit <- lm(delta~cwd1.gam.mean,data=xx)
+      slps <- c(slps,summary(fit)$coeff[2,1])
+      pvals <- c(pvals,summary(fit)$coeff[2,4])
+      #lmres <- rbind(lmres,c(a,m,v,slp,pval))
+    }
+lmres <- data.frame(algorithm=aa,rcp=rr,model=mm,var_set=vv,slp=slps,pval=pvals)
+lmres$scenario <- paste0('2061-2080_',lmres$rcp,'_',lmres$model)
+head(lmres)
+plot(lmres$slp,lmres$pval)
 
+# evaluate the changes occurring at pepperwood under different scenarios
+clim <- read.csv('data/pwd_climate_1km.csv')
+head(clim)
+clims <- data.frame(scenario=unique(clim$scenario),cwd=NA,aet=NA,tminmin=NA,ppt=NA,djf=NA,jja=NA)
+for (c in c('cwd','aet','tminmin','ppt','djf','jja')){
+  clims[,c] <- tapply(clim[,c],clim$scenario,mean)
+}
+clims
 
+plot(clims$cwd,clims$aet)
+abline(v=rev(clims$cwd)[1])
+abline(h=rev(clims$aet)[1])
 
+plot(clims$cwd,clims$ppt)
+abline(v=rev(clims$cwd)[1])
+abline(h=rev(clims$ppt)[1])
 
+# are deltas a function of degree of climate change
+lmresc <- merge(clims,lmres)
+xx <- which(lmresc$rcp=='rcp85' & lmresc$algorithm=='maxent')
+plot(lmresc$cwd[xx],lmresc$slp[xx])
+yy <- intersect(xx,lmresc$pval<=0.05)
+
+lmres[order(lmres$pval),]
 #### SCRIPT BELOW FROM BEFORE RENAMING VARS
 # plot(pwd.reg$cwd.occ.even~pwd.reg$clim)
 # fit <- lm(pwd.reg$cwd.occ.even~pwd.reg$clim)
