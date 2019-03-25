@@ -27,7 +27,7 @@ names(hypv)
 rm('hyp')
 hypv <- hypv[,1:29]
 
-rsamp <- sample(nrow(hypv),5000)
+rsamp <- sample(nrow(hypv),10000)
 
 # explanation for some of the abiotic variables
 names(hypv)
@@ -49,7 +49,7 @@ cbind(species,sci.names)
 vars <- c("cwd8110", "model3")
 
 # read in gam model outputs
-gfits <- readRDS('big_data/gam_fits.Rdata')
+gfits <- readRDS('big_data/pwd_gam2_fits.Rdata')
 
 # cspace is an orthogonal matrix spanning the range of cwd and tmin vals, to visualize model fit
 summary(hypv$cwd8110)
@@ -65,8 +65,8 @@ head(cspace)
 
 # setup futures
 hypF <- hypv
-hypF$cwd8110 <- hypv$cwd8110 + 80
-hypF$model3 <- hypv$model3 + 2
+hypF$cwd8110 <- hypv$cwd8110 + 120
+hypF$model3 <- hypv$model3 + 3
 
 sfits <- list()
 i=1
@@ -76,9 +76,6 @@ for(i in 1:length(species)){
   fit <- gfits[[i]]
   hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
   hypF[,paste0(sp, "_pred")] <- predict(fit, hypF, type="response")
-  
-  #cspace[,paste0(sp, "_pred")] <- predict(fit,cspace,type="response")
-  sfits[[i]] <- summary(fit)
 }
 
 # extract summaries and model fits from gam models
@@ -111,4 +108,4 @@ plot(gam.del.abund~cwd.gam.Hmean,data=gam_histfut)
 plot(south.gam.Fmean~south.gam.Hmean,data=gam_histfut);abline(0,1)
 plot(topoid.gam.Fmean~topoid.gam.Hmean,data=gam_histfut);abline(0,1)
 plot(gam.del.topoid~gam.del.south,data=gam_histfut);abline(h=0);abline(v=0)
-
+write.csv(gam_histfut,'data/gamF3.csv')

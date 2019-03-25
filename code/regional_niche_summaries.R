@@ -42,6 +42,7 @@ cch <- read_csv("E:/phycon/data/occurrences/California_Species_clean_All_epsg_33
 
 # loop through species
 results <- data.frame()
+#dev <- c()
 for(sp in unique(c(fia$gs, cch$gs))){
       message(sp)
       
@@ -82,6 +83,7 @@ for(sp in unique(c(fia$gs, cch$gs))){
             md <- data.frame(value=cs[,var], pres=1) %>%
                   rbind(data.frame(value=bg[,var], pres=0))
             fit <- gam(pres ~ s(value), data=md, family=binomial(logit))
+            #dev <- c(dev,summary(fit)$dev.expl)
             
             # grid approximation of response surface
             results <- data.frame(var=var, 
@@ -101,6 +103,8 @@ r <- results %>%
                 median=value[cumsum(fit)>.5][1],
                 max=value[fit==max(fit)][1]) %>%
       ungroup()
+
+r
 
 write.csv(r, "data/regional_niche_stats.csv", row.names = F)
 
