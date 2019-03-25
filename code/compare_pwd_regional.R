@@ -25,7 +25,7 @@ d <- names %>%
 
 names(d)
 plot(d$tot.abund,d$gam.tabund)
-plot(d$hypv.pmax,d$cspace.pmax)
+plot(d$hypv2.pmax,d$cspace2.pmax)
 abline(0,1)
 
 ## Variable name code
@@ -50,8 +50,8 @@ abline(0,1)
 # reg.cwd.max = reginal CWD niche model, max
 
 # Have a look at scatterplots and correlations
-pairs(d[,c('cwd.cspace.opt','cwd.hypv.opt','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
-cor(d[,c('cwd.cspace.opt','cwd.hypv.opt','cwd.mean','south.mean','reg.cwd.mean','reg.cwd.median','reg.cwd.max')])
+pairs(d[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd1.gam.mean','south.mean','reg.cwd_mean','reg.cwd_median','reg.cwd_max')])
+cor(d[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd1.gam.mean','south.mean','reg.cwd_mean','reg.cwd_median','reg.cwd_max')])
 
 # is lowest of these correlations significant? YES
 op=par(mfrow=c(2,1))

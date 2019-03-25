@@ -44,24 +44,30 @@ cbind(species,sci.names)
 # gam model variables
 vars <- c("cwd8110", "model3")
 
-# read in gam model outputs
-gfits <- readRDS('big_data/gam_fits.Rdata')
 
 # cspace is an orthogonal matrix spanning the range of cwd and tmin vals, to visualize model fit
 summary(hypv$cwd8110)
 summary(hypv$model3)
 cvals <- seq(min(hypv$cwd8110,na.rm=T),max(hypv$cwd8110,na.rm=T),length.out = 100)
 tvals <- seq(min(hypv$model3,na.rm=T),max(hypv$model3,na.rm=T),length.out = 100)
-cspace <- data.frame(matrix(NA,nrow=length(cvals)*length(tvals),ncol=(2+length(species))))
+cspace <- data.frame(cwd8110 = rep(cvals,100),model3 = rep(tvals,each=100))
 dim(cspace)
 names(cspace) <- c('cwd8110','model3',paste0(species,'_pred'))
 cspace$cwd8110 <- rep(cvals,100)
 cspace$model3 <- rep(tvals,each=100)
 head(cspace)
 
+# extract summaries and model fits from gam models
+# define model predictors
+# '2' is for cwd,model3 bivariate gam; '1' is for cwd univariate gam
+gam_niche <- data.frame(species,sci.names,gam2.tabund=NA,cwd2.cspace.opt=NA,tmin2.cspace.opt=NA,cwd2.hypv.opt=NA,tmin2.hypv.opt=NA,cwd2.gam.mean=NA,tmin2.gam.mean=NA,hypv2.pmax=NA,cspace2.pmax=NA,dev2.expl=NA,cwd2.chisq=NA,tmin2.chisq=NA,cwd1.cspace.opt=NA,cwd1.hypv.opt=NA,cwd1.gam.mean=NA,hypv1.pmax=NA,cspace1.pmax=NA,cwd1.dev.expl=NA)
+
+# read in gam bivariate model outputs
+gfits <- readRDS('big_data/pwd_gam2_fits.Rdata')
+
 sfits <- list()
 i=1
-for(i in 1:length(species)){
+for (i in 1:length(species)){
   sp <- species[i]
   message(sp)
   fit <- gfits[[i]]
@@ -78,33 +84,80 @@ pall <- rainbow(13)
 plot(cspace$cwd8110[wm],cspace[wm,3]/max(cspace[wm,3]),type='l',ylim=c(0,1),col=pall[1])
 for (i in 4:15) lines(cspace$cwd8110[wm],cspace[wm,i]/max(cspace[wm,i]),col=pall[i-3])
 
-# extract summaries and model fits from gam models
-# define model predictors
-gam_niche <- data.frame(species,sci.names,gam.tabund=NA,cwd.cspace.opt=NA,tmin.cspace.opt=NA,cwd.hypv.opt=NA,tmin.hypv.opt=NA,cwd.gam.mean=NA,tmin.gam.mean=NA,hypv.pmax=NA,cspace.pmax=NA,dev.expl=NA,cwd.chisq=NA,tmin.chisq=NA)
+i=1
+for (i in 1:length(species)) {
+  sp <- species[i]
+  message(sp)
+  gam_niche$gam2.tabund[i] <- sum(hypv[,paste0(sp,"_pred")],na.rm=T)
+  cwm <- which.max(cspace[,paste0(sp,"_pred")])
+  pwm <- which.max(hypv[,paste0(sp,"_pred")])
+  gam_niche$cwd2.cspace.opt[i] <- cspace$cwd8110[cwm]
+  gam_niche$tmin2.cspace.opt[i] <- cspace$model3[cwm]
+  gam_niche$cwd2.hypv.opt[i] <- hypv$cwd8110[pwm]
+  gam_niche$tmin2.hypv.opt[i] <- hypv$model3[pwm]
+  gam_niche$cwd2.gam.mean[i] <- weighted.mean(hypv$cwd8110,hypv[,paste0(sp,"_pred")],na.rm=T)
+  gam_niche$tmin2.gam.mean[i] <- weighted.mean(hypv$model3,hypv[,paste0(sp,"_pred")],na.rm=T)
+  gam_niche$hypv2.pmax[i] <- hypv[pwm,paste0(sp,"_pred")]
+  gam_niche$cspace2.pmax[i] <- cspace[cwm,paste0(sp,"_pred")]
+  gam_niche$dev2.expl[i] <- sfits[[i]]$dev.expl
+  gam_niche[i,c('cwd2.chisq','tmin2.chisq')] <- sfits[[i]]$chi.sq
+}
+gam_niche
+
+
+# read in gam univariate model outputs
+gfits <- readRDS('big_data/pwd_gam1cwd_fits.Rdata')
+
+sfits <- list()
+i=1
+for(i in 1:length(species)){
+  sp <- species[i]
+  message(sp)
+  fit <- gfits[[i]]
+  hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
+  cspace[,paste0(sp, "_pred")] <- predict(fit,cspace,type="response")
+  sfits[[i]] <- summary(fit)
+}
+
+# plot gams
+names(cspace)
+unique(cspace$model3)
+
+wm <- which(cspace$model3==unique(cspace$model3)[51])
+(maxp <- max(cspace[,3:15]))
+pall <- rainbow(13)
+plot(cspace$cwd8110[wm],cspace[wm,3]/max(cspace[wm,3]),type='l',ylim=c(0,1),col=pall[1])
+for (i in 4:15) lines(cspace$cwd8110[wm],cspace[wm,i]/max(cspace[wm,i]),col=pall[i-3])
+
 
 i=1
 for (i in 1:length(species)) {
   sp <- species[i]
   message(sp)
-  gam_niche$gam.tabund[i] <- sum(hypv[,paste0(sp,"_pred")],na.rm=T)
+  
   cwm <- which.max(cspace[,paste0(sp,"_pred")])
   pwm <- which.max(hypv[,paste0(sp,"_pred")])
-  gam_niche$cwd.cspace.opt[i] <- cspace$cwd8110[cwm]
-  gam_niche$tmin.cspace.opt[i] <- cspace$model3[cwm]
-  gam_niche$cwd.hypv.opt[i] <- hypv$cwd8110[pwm]
-  gam_niche$tmin.hypv.opt[i] <- hypv$model3[pwm]
-  gam_niche$cwd.gam.mean[i] <- weighted.mean(hypv$cwd8110,hypv[,paste0(sp,"_pred")],na.rm=T)
-  gam_niche$tmin.gam.mean[i] <- weighted.mean(hypv$model3,hypv[,paste0(sp,"_pred")],na.rm=T)
-  gam_niche$hypv.pmax[i] <- hypv[pwm,paste0(sp,"_pred")]
-  gam_niche$cspace.pmax[i] <- cspace[cwm,paste0(sp,"_pred")]
-  gam_niche$dev.expl[i] <- sfits[[i]]$dev.expl
-  gam_niche[i,c('cwd.chisq','tmin.chisq')] <- sfits[[i]]$chi.sq
+  gam_niche$cwd1.cspace.opt[i] <- cspace$cwd8110[cwm]
+  gam_niche$cwd1.hypv.opt[i] <- hypv$cwd8110[pwm]
+  
+  gam_niche$cwd1.gam.mean[i] <- weighted.mean(hypv$cwd8110,hypv[,paste0(sp,"_pred")],na.rm=T)
+  
+  gam_niche$hypv1.pmax[i] <- hypv[pwm,paste0(sp,"_pred")]
+  gam_niche$cspace1.pmax[i] <- cspace[cwm,paste0(sp,"_pred")]
+  gam_niche$cwd1.dev.expl[i] <- sfits[[i]]$dev.expl
 }
 gam_niche
-range(gam_niche$dev.expl)
 
-pairs(gam_niche[,c('cwd.cspace.opt','cwd.gam.mean','tmin.cspace.opt','tmin.gam.mean')])
-cor(gam_niche[,c('cwd.cspace.opt','cwd.gam.mean','tmin.cspace.opt','tmin.gam.mean')])
+plot(gam_niche$cwd1.dev.expl,gam_niche$dev2.expl);abline(0,1)
+cbind(gam_niche$cwd1.dev.expl,gam_niche$dev2.expl)
+
+
+pairs(gam_niche[,c('cwd2.cspace.opt','cwd2.gam.mean','tmin2.cspace.opt','tmin2.gam.mean')])
+cor(gam_niche[,c('cwd2.cspace.opt','cwd2.gam.mean','tmin2.cspace.opt','tmin2.gam.mean')])
+
+pairs(gam_niche[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd2.gam.mean','cwd1.gam.mean')])
+cor(gam_niche[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd2.gam.mean','cwd1.gam.mean')])
+
 write.csv(gam_niche,'data/pwd_gam1.csv')
 
 species
