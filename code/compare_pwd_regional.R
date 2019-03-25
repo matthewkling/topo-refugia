@@ -107,6 +107,25 @@ text(d$topoid.mean, d$reg.ppt_mean,labels=d$Plot.abb)
 
 
 
+# niche model deltas vs. pwd topoclimate
+
+deltas <- read.csv("data/pwd_niche_deltas.csv",as.is=T) %>%
+      group_by(species, scenario, var_set, algorithm) %>%
+      summarize(delta=mean(delta)) %>%
+      rename(Sci.name = species) %>%
+      left_join(names) %>%
+      left_join(pwdgam) %>%
+      left_join(pwdtopo) %>%
+      separate(scenario, c("year", "rcp", "model"), sep="_")
+
+ggplot(deltas, aes(cwd.gam.mean, delta)) +
+      geom_hline(yintercept=0, linetype=2) +
+      geom_smooth(method=lm) +
+      geom_smooth(method=lm, level=0.50, alpha=1) +
+      facet_grid(algorithm + var_set ~ model + rcp, scales="free") +
+      geom_text(aes(label=Plot.abb), size=2) +
+      theme_bw()
+
 
 
 
