@@ -140,6 +140,8 @@ length(infiles)
 length(sp)
 gam_pwd_suit <- data.frame(fname=infiles,sp=NA,var_set=NA,scen=NA,dcwd=NA,daet=NA,dtmintmin=NA,suit=NA)
 
+hypx <- readRDS('data/HYPshapefile-geo/hyp.boundary.Rdata')
+
 i=1
 for (i in 1:length(infiles)){
   infile <- infiles[i]
@@ -152,7 +154,7 @@ for (i in 1:length(infiles)){
   gam_pwd_suit$dcwd[i] <- dcwds[match(substr(scen,5,5),c('A','B','C','D'))]
   gam_pwd_suit$daet[i] <- daets[match(substr(scen,6,6),c('A','B','C','D'))]
   gam_pwd_suit$dtmintmin[i] <- dtminmins[match(substr(scen,7,7),c('A','B','C','D'))]
-  gam_pwd_suit$suit[i] <- mean(values(ras))
+  gam_pwd_suit$suit[i] <- mean(extract(ras,hypx)[[1]])
 }
 head(gam_pwd_suit)
 tail(gam_pwd_suit)
@@ -167,8 +169,8 @@ for (i in 1:length(species)){
   fit <- glm(suit~dcwd+daet+dtmintmin,data=xx)
   summary(fit)$coeff
   climcf$sp[i] <- species[i]
-  climcf$cwd.cf[i] <- summary(fit)$coeff[2,1]*10
-  climcf$aet.cf[i] <- summary(fit)$coeff[3,1]*10
+  climcf$cwd.cf[i] <- summary(fit)$coeff[2,1]
+  climcf$aet.cf[i] <- summary(fit)$coeff[3,1]
   climcf$tminmin.cf[i] <- summary(fit)$coeff[4,1]
   plot(xx$suit[order(xx$daet,xx$dtmintmin,xx$dcwd)])
 }
@@ -183,4 +185,7 @@ d
 plot(d$cwd.mean,d$cwd.cf)
 summary(lm(d$cwd.cf~d$cwd.mean))
 plot(d$south.mean,d$aet.cf)
+summary(lm(d$aet.cf~d$cwd.mean))
 plot(d$topoid.mean,d$tminmin.cf)
+
+pairs(d[,c('cwd.mean','cwd.cf','aet.cf','tminmin.cf')])

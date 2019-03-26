@@ -17,6 +17,7 @@ expand_extent <- function(ex,d) {
 }
 
 pwd <- readShapeSpatial('data/PPshapefile-geo/Pepperwood')
+projection(pwd) <- projection(climate)
 plot(pwd,add=T)
 pwdx <- extent(pwd)
 pwdx@xmin <- -122.82
@@ -24,9 +25,14 @@ pwdx@xmax <- -122.6
 pwdx@ymin <- 38.5
 pwdx@ymax <- 38.67
 
+hypx <- readRDS('data/HYPshapefile-teale-albers/hyp.boundary.Rdata')
+hypx <- spTransform(hypx,projection(climate))
+saveRDS(hypx,'data/HYPshapefile-geo/hyp.boundary.Rdata')
+
 pclim <- crop(climate,pwdx)
 plot(pclim[[1]])
 plot(pwd,add=T)
+plot(hypx,add=T)
 
 saveRDS(pwdx,'data/PWDexpanded_extent.Rdata')
 saveRDS(pclim,'data/climate/historic/historic.Rdata')
