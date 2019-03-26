@@ -114,7 +114,7 @@ deltas <- read.csv("data/pwd_niche_deltas.csv",as.is=T) %>%
       separate(scenario, c("year", "rcp", "model"), sep="_")
 dim(deltas)
 names(deltas)
-unique(deltas$rcp)
+unique(deltas$var_set)
 
 ggplot(deltas, aes(cwd1.gam.mean, delta)) +
       geom_hline(yintercept=0, linetype=2) +
