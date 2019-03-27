@@ -63,7 +63,7 @@ names(scenarios) <- scen_names
 
 head(data.frame(values(scenarios[[1]])))
 
-algo <- 'maxent' # choose modeling algorithm
+algo <- 'gam' # choose modeling algorithm
 
 # loop through species
 sp <- 'Aesculus californica' # test value to debug inside loop
@@ -109,13 +109,20 @@ for(sp in unique(c(fia$gs, as.character(cch$gs)))){
             # fit a binomial GAM describing species occurrence as a function of climate
             if (algo=='gam') {
               formula <- as.formula(paste0("pres ~ ", paste0("s(", var_sets[[vars]], ")", collapse=" + ")))
-            fit <- gam(formula, data=md, family=binomial(logit))
-            saveRDS(fit, paste0("data/pwd_distributions/models/",
-                                sp, "_", vars, ".rds"))
+              outfile <- paste0("data/pwd_distributions/models/",
+                                sp, "_", vars, ".rds")
+              if(file.exists(outfile)) {
+                fit <- readRDS(outfile) 
+              } else {
+                fit <- gam(formula, data=md, family=binomial(logit))
+                saveRDS(fit, paste0("data/pwd_distributions/models/",
+                                    sp, "_", vars, ".rds"))
+              }
+              message(paste("    ",round(summary(fit)$dev.expl,4)))
             } else {
-            fit <- maxent(md[,var_sets[[vars]]], md$pres,
-                          args=c("-a", "-z", "outputformat=raw", 
-                                 "nothreshold", "nohinge"))
+              fit <- maxent(md[,var_sets[[vars]]], md$pres,
+                            args=c("-a", "-z", "outputformat=raw", 
+                                   "nothreshold", "nohinge"))
             }
             # model predictions (the slow step)
             scen <- "climAAA" # test value for debugging
@@ -168,19 +175,29 @@ for (i in 1:length(infiles)){
 head(gam_pwd_suit)
 tail(gam_pwd_suit)
 
+# add column for historical suitability (ABA) to calculate changes in suitability
+hsuit <- gam_pwd_suit[gam_pwd_suit$scen=='climABA',]
+hsuit
+gam_pwd_suit$hsuit <- hsuit$suit[match(gam_pwd_suit$sp,hsuit$sp)]
+head(gam_pwd_suit)
+tail(gam_pwd_suit)
+gam_pwd_suit$dsuit <- gam_pwd_suit$suit - gam_pwd_suit$hsuit
+hist(gam_pwd_suit$dsuit)
+summary(gam_pwd_suit$dsuit)
+
 species <- unique(gam_pwd_suit$sp)
 climcf <- data.frame(sp=species,cwd.cf=NA,aet.cf=NA,tminmin.cf=NA)
 
-i=1
+i=2
 for (i in 1:length(species)){
   message(species[i])
   xx <- gam_pwd_suit[gam_pwd_suit$sp==species[i],]
   fit <- glm(suit~dcwd+daet+dtmintmin,data=xx)
   summary(fit)$coeff
   climcf$sp[i] <- species[i]
-  climcf$cwd.cf[i] <- summary(fit)$coeff[2,1]
-  climcf$aet.cf[i] <- summary(fit)$coeff[3,1]
-  climcf$tminmin.cf[i] <- summary(fit)$coeff[4,1]
+  climcf$cwd.cf[i] <- summary(fit)$coeff[2,1] * 120
+  climcf$aet.cf[i] <- summary(fit)$coeff[3,1] * 75
+  climcf$tminmin.cf[i] <- summary(fit)$coeff[4,1] * 4
   plot(xx$suit[order(xx$daet,xx$dtmintmin,xx$dcwd)])
 }
 climcf
@@ -193,8 +210,44 @@ d
 
 plot(d$cwd.mean,d$cwd.cf)
 summary(lm(d$cwd.cf~d$cwd.mean))
+abline(h=0)
+sort(d$cwd.cf)
+
 plot(d$south.mean,d$aet.cf)
 summary(lm(d$aet.cf~d$cwd.mean))
+abline(h=0)
+
+plot(d$south.mean,d$tminmin.cf)
+abline(h=0)
+
 plot(d$topoid.mean,d$tminmin.cf)
+abline(h=0)
 
 pairs(d[,c('cwd.mean','cwd.cf','aet.cf','tminmin.cf')])
+
+##### After GAM models have been fit, they can be reloaded here without going through the entire loop below - just to
+if (FALSE) {
+  for(sp in unique(c(fia$gs, as.character(cch$gs)))){
+    outfile <- paste0("data/pwd_distributions/models/",
+                      sp, "_", vars, ".rds")
+    fit <- readRDS(outfile) 
+    message(paste(sp,round(summary(fit)$dev.expl,4)))
+  }
+}
+#GAM dev.expl values with var_set 'a'
+# $a
+# [1] "cwd"     "aet"     "tminmin"
+
+# Aesculus californica 0.4985
+# Pseudotsuga menziesii 0.4081
+# Notholithocarpus densiflorus 0.7168
+# Sequoia sempervirens 0.8542
+# Arbutus menziesii 0.6613
+# Umbellularia californica 0.6495
+# Acer macrophyllum 0.6684
+# Quercus garryana 0.6008
+# Quercus kelloggii 0.6843
+# Quercus agrifolia 0.735
+# Quercus douglasii 0.7037
+# Quercus lobata 0.4923
+# Adenostoma fasciculatum 0.5073
