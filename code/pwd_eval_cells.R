@@ -7,8 +7,8 @@ for (c in c('cwd','aet','tminmin','ppt','djf','jja')){
   clims[,c] <- tapply(clim[,c],clim$scenario,mean)
 }
 clims
-pairs(clims[,-c(1,5:7)])
-cor(clims[,-1])
+pairs(clims[,c('cwd','aet','djf')])
+cor(clims[,c('cwd','aet','djf')])
 
 # summary of scenarios in terms of range of changes in climate factors
 # cwd: historic = 716, max fut = 831
@@ -17,6 +17,7 @@ cor(clims[,-1])
 #     for future exploration:  -25, 0, 25, 50
 # tminmin: historic 4.4, max fut 7.6
 #     for future exploration: 0, +1, +2, +3
+#     same works for djf
 
 
 head(clim)

@@ -12,6 +12,8 @@ library(doParallel)
 library(rgeos)
 library(mgcv)
 library(corrplot)
+library(dismo)
+library(rJava)
 
 select <- dplyr::select
 
@@ -61,6 +63,8 @@ names(scenarios) <- scen_names
 
 head(data.frame(values(scenarios[[1]])))
 
+algo <- 'maxent' # choose modeling algorithm
+
 # loop through species
 sp <- 'Aesculus californica' # test value to debug inside loop
 for(sp in unique(c(fia$gs, as.character(cch$gs)))){
@@ -103,11 +107,16 @@ for(sp in unique(c(fia$gs, as.character(cch$gs)))){
       for(vars in names(var_sets)){
             
             # fit a binomial GAM describing species occurrence as a function of climate
-            formula <- as.formula(paste0("pres ~ ", paste0("s(", var_sets[[vars]], ")", collapse=" + ")))
+            if (algo=='gam') {
+              formula <- as.formula(paste0("pres ~ ", paste0("s(", var_sets[[vars]], ")", collapse=" + ")))
             fit <- gam(formula, data=md, family=binomial(logit))
             saveRDS(fit, paste0("data/pwd_distributions/models/",
                                 sp, "_", vars, ".rds"))
-            
+            } else {
+            fit <- maxent(md[,var_sets[[vars]]], md$pres,
+                          args=c("-a", "-z", "outputformat=raw", 
+                                 "nothreshold", "nohinge"))
+            }
             # model predictions (the slow step)
             scen <- "climAAA" # test value for debugging
             for(scen in names(scenarios)){
