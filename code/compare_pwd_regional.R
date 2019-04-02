@@ -53,6 +53,18 @@ abline(0,1)
 pairs(d[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd1.gam.mean','south.mean','reg.cwd_mean','reg.cwd_median','reg.cwd_max')])
 cor(d[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd1.gam.mean','south.mean','reg.cwd_mean','reg.cwd_median','reg.cwd_max')])
 
+# compare regional niche metrics
+pairs(d[,c('reg.cwd_mean','reg.cwd_median','reg.cwd_max')])
+cor(d[,c('reg.cwd_mean','reg.cwd_median','reg.cwd_max')])
+
+# compare regional niche metrics
+pairs(d[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd1.gam.mean','south.mean')])
+cor(d[,c('cwd1.hypv.opt','cwd2.hypv.opt','cwd1.gam.mean','south.mean')])
+summary(d$cwd1.gam.mean)
+sort(d$cwd1.gam.mean)
+summary(d$cwd1.hypv.opt)
+sort(d$cwd1.hypv.opt)
+
 # is lowest of these correlations significant? YES
 op=par(mfrow=c(2,1))
 plot(cwd1.hypv.opt~reg.cwd_mean,data=d,type='n',

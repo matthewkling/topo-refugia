@@ -96,3 +96,9 @@ for(i in 1:length(species)){
   gfits[[i]] <- fit
 }
 saveRDS(gfits,'big_data/pwd_gam1cwd_fits.Rdata')
+
+# read back in to evaluate
+gfits <- readRDS('big_data/pwd_gam2_fits.Rdata')
+gfits[1]
+summary(gfits[[1]])$dev.expl
+for (i in 1:length(gfits)) print(summary(gfits[[i]])$dev.expl)
