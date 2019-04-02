@@ -67,8 +67,9 @@ algo <- 'gam' # choose modeling algorithm
 
 # loop through species
 sp <- 'Aesculus californica' # test value to debug inside loop
-for(sp in unique(c(fia$gs, as.character(cch$gs)))){
-      message(sp)
+res <- c()
+for(sp in sort(unique(c(fia$gs, as.character(cch$gs))))){
+      #message(sp)
       
       # species occurrences
       fs <- switch(as.character(sp %in% cch_spp), "TRUE"=cch, "FALSE"=fia) %>%
@@ -118,7 +119,17 @@ for(sp in unique(c(fia$gs, as.character(cch$gs)))){
                 saveRDS(fit, paste0("data/pwd_distributions/models/",
                                     sp, "_", vars, ".rds"))
               }
-              message(paste("    ",round(summary(fit)$dev.expl,4)))
+              # what is peak probability value, and how do values compare
+              # for presence vs. absence sites. Only for manual examination
+              if (FALSE) {
+                boxplot(md$pres,fit$fitted.values)
+                plot(md$cwd,fit$fitted.values)
+                plot(md$aet,fit$fitted.values)
+                plot(md$tminmin,fit$fitted.values)
+              }
+              maxval <- max(fit$fitted.values[md$pres==1],na.rm=T)
+              message(paste(sp,round(summary(fit)$dev.expl,4),round(maxval,3)))
+              res <- rbind(res,c(sp,round(summary(fit)$dev.expl,4),round(maxval,3)))
             } else {
               fit <- maxent(md[,var_sets[[vars]]], md$pres,
                             args=c("-a", "-z", "outputformat=raw", 
@@ -143,101 +154,17 @@ for(sp in unique(c(fia$gs, as.character(cch$gs)))){
       }
 }
 
+res
+write.csv(data.frame(sp=res[,1],dev.expl=as.numeric(res[,2]),max.fit.value=as.numeric(res[,3])),'data/gam_varseta_modelstats.csv')
+
 # check results are readable
 mean(values(raster(outfile)))
 
-## extract results
-dcwds <- c(0,40,80,120)
-daets <- c(-25,0,25,50)
-dtminmins <- c(0,1,2,3)
-
-infiles <- list.files('data/pwd_distributions/rasters')
-length(infiles)
-length(sp)
-gam_pwd_suit <- data.frame(fname=infiles,sp=NA,var_set=NA,scen=NA,dcwd=NA,daet=NA,dtmintmin=NA,suit=NA)
-
-hypx <- readRDS('data/HYPshapefile-geo/hyp.boundary.Rdata')
-
-i=1
-for (i in 1:length(infiles)){
-  infile <- infiles[i]
-  ras <- raster(paste0('data/pwd_distributions/rasters/',infile))
-  chs <- strsplit(infile,'__')
-  gam_pwd_suit$sp[i] <- chs[[1]][1]
-  gam_pwd_suit$var_set[i] <- chs[[1]][2]
-  scen <- substr(chs[[1]][3],1,7)
-  gam_pwd_suit$scen[i] <- scen
-  gam_pwd_suit$dcwd[i] <- dcwds[match(substr(scen,5,5),c('A','B','C','D'))]
-  gam_pwd_suit$daet[i] <- daets[match(substr(scen,6,6),c('A','B','C','D'))]
-  gam_pwd_suit$dtmintmin[i] <- dtminmins[match(substr(scen,7,7),c('A','B','C','D'))]
-  gam_pwd_suit$suit[i] <- mean(extract(ras,hypx)[[1]])
-}
-head(gam_pwd_suit)
-tail(gam_pwd_suit)
-
-# add column for historical suitability (ABA) to calculate changes in suitability
-hsuit <- gam_pwd_suit[gam_pwd_suit$scen=='climABA',]
-hsuit
-gam_pwd_suit$hsuit <- hsuit$suit[match(gam_pwd_suit$sp,hsuit$sp)]
-head(gam_pwd_suit)
-tail(gam_pwd_suit)
-gam_pwd_suit$dsuit <- gam_pwd_suit$suit - gam_pwd_suit$hsuit
-hist(gam_pwd_suit$dsuit)
-summary(gam_pwd_suit$dsuit)
-
-species <- unique(gam_pwd_suit$sp)
-climcf <- data.frame(sp=species,cwd.cf=NA,aet.cf=NA,tminmin.cf=NA)
-
-i=2
-for (i in 1:length(species)){
-  message(species[i])
-  xx <- gam_pwd_suit[gam_pwd_suit$sp==species[i],]
-  fit <- glm(suit~dcwd+daet+dtmintmin,data=xx)
-  summary(fit)$coeff
-  climcf$sp[i] <- species[i]
-  climcf$cwd.cf[i] <- summary(fit)$coeff[2,1] * 120
-  climcf$aet.cf[i] <- summary(fit)$coeff[3,1] * 75
-  climcf$tminmin.cf[i] <- summary(fit)$coeff[4,1] * 4
-  plot(xx$suit[order(xx$daet,xx$dtmintmin,xx$dcwd)])
-}
-climcf
-barplot(t(as.matrix(climcf[,-1])),beside=T)
-
-topo <- read.csv('data/pwd_niche_means.csv')
-head(topo)
-d <- merge(climcf,topo,by.x='sp',by.y='sci.names')
-d
-
-plot(d$cwd.mean,d$cwd.cf)
-summary(lm(d$cwd.cf~d$cwd.mean))
-abline(h=0)
-sort(d$cwd.cf)
-
-plot(d$south.mean,d$aet.cf)
-summary(lm(d$aet.cf~d$cwd.mean))
-abline(h=0)
-
-plot(d$south.mean,d$tminmin.cf)
-abline(h=0)
-
-plot(d$topoid.mean,d$tminmin.cf)
-abline(h=0)
-
-pairs(d[,c('cwd.mean','cwd.cf','aet.cf','tminmin.cf')])
-
-##### After GAM models have been fit, they can be reloaded here without going through the entire loop below - just to
-if (FALSE) {
-  for(sp in unique(c(fia$gs, as.character(cch$gs)))){
-    outfile <- paste0("data/pwd_distributions/models/",
-                      sp, "_", vars, ".rds")
-    fit <- readRDS(outfile) 
-    message(paste(sp,round(summary(fit)$dev.expl,4)))
-  }
-}
-#GAM dev.expl values with var_set 'a'
+#var_set 'a'
 # $a
 # [1] "cwd"     "aet"     "tminmin"
 
+# sp - dev.expl - max fitted.value
 # Aesculus californica 0.4985
 # Pseudotsuga menziesii 0.4081
 # Notholithocarpus densiflorus 0.7168
