@@ -124,7 +124,9 @@ for(s in spp){
             filter(gs == s) %>%
             left_join(sites, .) %>%
             mutate(pres = !is.na(gs)) %>%
-            filter(abs(southness) <= .5)
+            filter(abs(southness) <= .5,
+                   !is.na(southness),
+                   !is.na(cwd))
       
       for(half in c("high", "low")){
             
@@ -147,10 +149,17 @@ for(s in spp){
             pred <- pred %>%
                   mutate(
                         gs = s,
-                        half = half,
+                        edge = half,
                         mid = mid,
                         lim = lim,
-                        slope = - coef(fit)["cwd"] / coef(fit)["southness"])
+                        n_pres = sum(md$pres),
+                        n_subplots = nrow(md),
+                        slope_southness = coef(fit)["southness"],
+                        slope_cwd = coef(fit)["cwd"],
+                        slope = - coef(fit)["cwd"] / coef(fit)["southness"],
+                        p_southness = summary(fit)$coefficients["southness", "Pr(>|z|)"],
+                        p_cwd = summary(fit)$coefficients["cwd", "Pr(>|z|)"]
+                        )
             slopes <- rbind(slopes, pred)
       }
 }
@@ -168,9 +177,9 @@ p <- ggplot() +
                  aes(xmin=mid, xmax=lim, ymin=-.5, ymax=.5),
                 color="black", fill=NA) +
       geom_contour(data=slopes %>% mutate(gs=factor(gs, levels=w2d)),
-                   aes(cwd, southness, z=pred, group=half),
+                   aes(cwd, southness, z=pred, group=edge),
                    color="black") +
-      scale_fill_gradientn(colours=c("gray95", "darkred"), 
+      scale_fill_gradientn(colours=c("gray95", "orange", "red", "darkred"), 
                            na.value="white") +
       scale_x_continuous(limits=c(0, 1500), expand=c(0,0)) +
       scale_y_continuous(breaks=c(-.5, 0, .5)) +
@@ -185,3 +194,8 @@ p <- ggplot() +
             legend.background=element_rect(fill="white", color=NA))
 ggsave("figures/regional_southness_cwd_occupancy_contours.png", p, width=8, height=8, units="in")
 
+# export slope data
+slopes %>%
+      select(-cwd, -southness, -pred) %>%
+      distinct() %>%
+      write_csv("data/logistic_regression_coefficients.csv")
