@@ -20,6 +20,9 @@ spp <- c("Acer macrophyllum", "Adenostoma fasiculatum",
          "Quercus douglasii", "Quercus garryana","Quercus kelloggii", 
          "Quercus lobata", "Sequoia sempervirens", "Umbellularia californica")
 
+names <- read.csv('data/names.csv',as.is=T) %>% 
+  select(Sci.name, Common.name, Plot.abb)
+
 ## extract results
 dcwds <- c(0,40,80,120)
 daets <- c(-25,0,25,50)
@@ -107,6 +110,7 @@ d <- merge(d,topo[,-c(1:2)],by.x='sp',by.y='sci.names')
 d
 
 reg <- read.csv('data/regional_niche_stats.csv',as.is=T)
+head(reg)
 head(reg[reg$var=='cwd',])
 d <- merge(d,reg[reg$var=='cwd',],by.x='sp',by.y='species')
 head(d)
@@ -118,6 +122,9 @@ names(d)[19:21] <- c('reg.aet.mean','reg.aet.median','reg.aet.max')
 d <- merge(d,reg[reg$var=='tminmin',],by.x='sp',by.y='species')
 names(d)[23:25] <- c('reg.tminmin.mean','reg.tminmin.median','reg.tminmin.max')
 d <- d[,-c(14,18,22)]
+d
+
+d <- merge(d,names,by.x='sp',by.y='Sci.name')
 d
 
 pairs(d[,c('cwd.mean','reg.cwd.mean','cwd.cf')])
@@ -188,18 +195,26 @@ abline(h=0)
 pairs(d[,c('cwd.mean','cwd.cf','aet.cf','tminmin.cf')])
 cor(d[,c('cwd.mean','cwd.cf','aet.cf','tminmin.cf')])
 
-### FIGURE 5 for paper
-op=par(mfrow=c(1,2))
-plot(cwd.cf~mean,data=d,pch=19,xlab='Regional CWD niche mean (mm)',ylab='Response to +120 CWD')
-abline(lm(cwd.cf~mean,data=d))
-summary(lm(cwd.cf~mean,data=d))
+names(d)
+
+### FIGURE_5 for paper
+png('figures/cwdSensitivityVnichemeans.png',width = 1000,height = 600)
+op=par(mfrow=c(1,2),mar=c(5,5,1,1))
+plot(cwd.cf~reg.cwd.mean,data=d,pch=19,xlab='Regional CWD niche mean (mm)',ylab='Response to +120 CWD',type='n',cex.lab=1.5)
+text(d$reg.cwd.mean,d$cwd.cf,labels=d$Plot.abb,cex=1.5)
+abline(lm(cwd.cf~reg.cwd.mean,data=d))
+text(800,-0.4,'p≤0.001',cex=2)
+summary(lm(cwd.cf~reg.cwd.mean,data=d))
 abline(h=0,lty=2)
 
-plot(cwd.cf~cwd.mean,data=d,pch=19,xlab='Topographic CWD niche mean (mm)',ylab='Response to +120 CWD')
+plot(cwd.cf~cwd.mean,data=d,pch=19,xlab='Topographic CWD niche mean (mm)',ylab='',type='n',cex.lab=1.5)
+text(d$cwd.mean,d$cwd.cf,labels=d$Plot.abb,cex=1.5)
 abline(lm(cwd.cf~cwd.mean,data=d))
 summary(lm(cwd.cf~cwd.mean,data=d))
 abline(h=0,lty=2)
+text(950,-0.4,'p≤0.003',cex=2)
 par(op)
+dev.off()
 
 ##### After GAM models have been fit, they can be reloaded here without going through the entire loop below - just to
 if (FALSE) {

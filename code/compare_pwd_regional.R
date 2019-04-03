@@ -66,27 +66,31 @@ summary(d$cwd1.hypv.opt)
 sort(d$cwd1.hypv.opt)
 
 # is lowest of these correlations significant? YES
-png('figures/rangewideVpwdniche.png',width = 800,height = 800)
-op=par(mfrow=c(2,1))
+#####FIGURE_4 in paper
+png('figures/rangewideVpwdniche.png',width = 700,height = 800)
+op=par(mfrow=c(2,1),mar=c(5,5,1,1))
 plot(cwd1.hypv.opt~reg.cwd_mean,data=d,type='n',
-     xlab='Range-wide CWD mean (mm)',
-     ylab='Pepperwood CWD optimum (mm)')
-text(d$reg.cwd_mean,d$cwd1.hypv.opt,labels=d$Plot.abb)
+     xlab='',
+     ylab='Pepperwood CWD optimum (mm)',cex.lab=1.5)
+text(d$reg.cwd_mean,d$cwd1.hypv.opt,labels=d$Plot.abb,cex=1.5)
 fit <- lm(cwd1.hypv.opt~reg.cwd_mean,data=d)
 abline(fit)
 #abline(0,1,lty=2)
 summary(fit)
+text(850,425,"p≤0.0001",cex=2)
 cor(d$reg.cwd_mean,d$cwd1.hypv.opt)
 
 
 plot(south.mean~reg.cwd_mean,data=d,type='n',
      xlab='Range-wide CWD mean (mm)',
-     ylab='Pepperwood southness')
-text(d$reg.cwd_mean,d$south.mean,labels=d$Plot.abb)
+     ylab='Pepperwood southness',cex.lab=1.5)
+text(d$reg.cwd_mean,d$south.mean,labels=d$Plot.abb,cex=1.5)
 fit <- lm(south.mean~reg.cwd_mean,data=d)
 abline(fit)
 #abline(0,1,lty=2)
 summary(fit)
+text(850,-0.17,"p≤0.03",cex=2)
+
 cor(d$reg.cwd_mean,d$south.mean)
 par(op)
 dev.off()
