@@ -66,6 +66,7 @@ summary(d$cwd1.hypv.opt)
 sort(d$cwd1.hypv.opt)
 
 # is lowest of these correlations significant? YES
+png('figures/rangewideVpwdniche.png',width = 800,height = 800)
 op=par(mfrow=c(2,1))
 plot(cwd1.hypv.opt~reg.cwd_mean,data=d,type='n',
      xlab='Range-wide CWD mean (mm)',
@@ -88,6 +89,7 @@ abline(fit)
 summary(fit)
 cor(d$reg.cwd_mean,d$south.mean)
 par(op)
+dev.off()
 
 d$Common.name
 
