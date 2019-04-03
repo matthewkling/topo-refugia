@@ -109,7 +109,7 @@ p <- ggplot(pd, aes(x_value, y_value, fill=err_ratio)) +
       geom_tile() +
       facet_grid(y_var ~ x_var, scales="free") +
       scale_fill_gradientn(colours=c("black", "blue", "red", "yellow")) +
-      labs(fill="slope mean abs log10 error ratio  ", x="parameter value", y="parameter value") +
+      labs(fill="slope mean abs log10 error ratio\n(<0.1 is within +/- 10% of true slope) ", x="parameter value", y="parameter value") +
       theme_minimal() + theme(legend.position="top")
 ggsave("figures/niche_simulation_logistic_MAE_ratio_heatmap.png", width=5, height=5.5, units="in")
 
