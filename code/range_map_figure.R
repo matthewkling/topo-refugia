@@ -24,7 +24,7 @@ d <- spf %>%
 for(i in 1:length(d)) d[[i]]$gs <- spp[i]
 d <- do.call("rbind", d)
 d$gs <- sub("Lithocarpus", "Notholithocarpus", d$gs)
-md <- map_data("usa")
+md <- map_data("state")
 
 w2d <- c("Pseudotsuga menziesii", "Acer macrophyllum", "Notholithocarpus densiflorus", 
          "Sequoia sempervirens",  "Arbutus menziesii", "Umbellularia californica", 
@@ -42,7 +42,7 @@ p <- ggplot(d %>% mutate(gs = factor(gs, levels=w2d)),
       facet_wrap(~gs) +
       theme(legend.position="none")
 ggsave("figures/map_ranges_faceted.png", 
-       p, width=8, height=8, units="in")
+       p, width=6, height=8, units="in")
 
 ggplot(d, aes(long, lat, group=paste(gs, group), color=gs)) +
       geom_polygon(fill=NA) +
@@ -66,18 +66,22 @@ cwd <- stack("big_data/climate/climate.tif")[[1]] %>%
 p <- ggplot() +
       geom_raster(data=cwd %>% filter(x > -125, x < -118, y > 33, y < 45),
                   aes(x, y, fill=climate.1)) +
+      geom_polygon(data=md, aes(long, lat, group=group), 
+                   color="black", fill=NA) +
       scale_fill_gradientn(colours=c("darkblue", "forestgreen", "yellow3", 
-                                     "darkgoldenrod2", "chocolate")) +
+                                     "darkgoldenrod2", "chocolate"),
+                           breaks=c(0, 500, 1000, 1500), limits=c(0, NA)) +
       annotate(geom="point", y=38.576906, x=-122.703292, 
-               color="red", shape=21, size=4) +
+               size=3) +
       coord_cartesian(xlim=c(-125, -118), ylim=c(33, 45),
                       expand=c(0,0)) +
       theme_void() +
       theme(legend.position=c(.3, .1),
             legend.direction="horizontal") +
-      labs(fill="CWD (mm)")
+      labs(fill="CWD (mm)") +
+      guides(fill=guide_colourbar(title.position="top", title.hjust = 0))
 ggsave("figures/map_cwd.png", 
-       p, width=6, height=8, units="in")
+       p, width=4, height=8, units="in")
 
 
 r <- spf %>% 
@@ -93,26 +97,25 @@ rd <- r %>%
       as.data.frame() %>%
       filter(layer > 0)
 
-md <- map_data("usa")
-
 p <- ggplot() +
       geom_polygon(data=md, aes(long, lat, group=group), 
                    color=NA, fill="gray95") +
       geom_raster(data=rd %>% filter(x > -125, x < -118, y > 33, y < 45),
                   aes(x, y, fill=layer)) +
+      geom_polygon(data=md, aes(long, lat, group=group), 
+                   color="black", fill=NA) +
       scale_fill_gradientn(colours=c("lightyellow", "orange", "red", "darkred"),
                            breaks=seq(1, 12, 3), limits=c(0, 12)) +
       annotate(geom="point", y=38.576906, x=-122.703292, 
-               color="cyan", shape=1, size=4) +
-      annotate(geom="point", y=38.576906, x=-122.703292, 
-               color="cyan", shape=3, size=6) +
+               size=3) +
       coord_cartesian(xlim=c(-125, -118), ylim=c(33, 45),
                       expand=c(0,0)) +
       theme_void() +
       theme(legend.position=c(.3, .1),
             legend.direction="horizontal") +
-      labs(fill="focal species\nrichness")
+      labs(fill="focal species\nrichness") +
+      guides(fill=guide_colourbar(title.position="top", title.hjust = 0))
 ggsave("figures/map_species_richness.png", 
-       p, width=6, height=8, units="in")
+       p, width=4, height=8, units="in")
 
 
