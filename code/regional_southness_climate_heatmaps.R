@@ -129,41 +129,55 @@ for(s in spp){
                    !is.na(cwd))
       
       for(half in c("high", "low")){
-            
-            if(half == "high") lim <- max(sd$cwd[sd$pres], na.rm=T)
-            if(half == "low") lim <- min(sd$cwd[sd$pres], na.rm=T)
-            
-            if(half == "high") mid <- quantile(sd$cwd[sd$pres], .9, na.rm=T)
-            if(half == "low") mid <- quantile(sd$cwd[sd$pres], .1, na.rm=T)
-            
-            if(half == "high") md <- filter(sd, cwd > mid)
-            if(half == "low") md <- filter(sd, cwd < mid)
-            
-            fit <- glm(pres ~ cwd + southness, data=md,
-                       family=binomial(link="logit"))
-            
-            pred <- expand.grid(cwd=seq(mid, lim, length.out=21),
-                                southness = seq(-.5, .5, length.out=21))
-            pred$pred <- predict(fit, pred, type="response")
-            
-            pred <- pred %>%
-                  mutate(
-                        gs = s,
-                        edge = half,
-                        mid = mid,
-                        lim = lim,
-                        n_pres = sum(md$pres),
-                        n_subplots = nrow(md),
-                        slope_southness = coef(fit)["southness"],
-                        slope_cwd = coef(fit)["cwd"],
-                        slope = - coef(fit)["cwd"] / coef(fit)["southness"],
-                        p_southness = summary(fit)$coefficients["southness", "Pr(>|z|)"],
-                        p_cwd = summary(fit)$coefficients["cwd", "Pr(>|z|)"]
+            for(quant in c(.5, .6, .7, .8, .85, .9, .95)){
+                  
+                  if(half == "high") lim <- max(sd$cwd[sd$pres], na.rm=T) + 100
+                  if(half == "low") lim <- min(sd$cwd[sd$pres], na.rm=T) - 100
+                  
+                  if(half == "high") mid <- quantile(sd$cwd[sd$pres], quant, na.rm=T)
+                  if(half == "low") mid <- quantile(sd$cwd[sd$pres], 1-quant, na.rm=T)
+                  
+                  if(half == "high") md <- filter(sd, cwd > mid)
+                  if(half == "low") md <- filter(sd, cwd < mid)
+                  
+                  fit <- glm(pres ~ cwd + southness, data=md,
+                             family=binomial(link="logit"))
+                  
+                  pred <- expand.grid(cwd=seq(mid, lim, length.out=21),
+                                      southness = seq(-.5, .5, length.out=21))
+                  pred$pred <- predict(fit, pred, type="response")
+                  
+                  pred <- pred %>%
+                        mutate(
+                              gs = s,
+                              quantile=quant,
+                              edge = half,
+                              mid = mid,
+                              lim = lim,
+                              n_pres = sum(md$pres),
+                              n_subplots = nrow(md),
+                              slope_southness = coef(fit)["southness"],
+                              slope_cwd = coef(fit)["cwd"],
+                              slope = - coef(fit)["cwd"] / coef(fit)["southness"],
+                              p_southness = summary(fit)$coefficients["southness", "Pr(>|z|)"],
+                              p_cwd = summary(fit)$coefficients["cwd", "Pr(>|z|)"]
                         )
-            slopes <- rbind(slopes, pred)
+                  slopes <- rbind(slopes, pred)
+            }
       }
 }
 
+
+
+
+q <- .9
+
+lines <- slopes %>% 
+      filter(quantile==q) %>% 
+      select(gs, edge, slope, mid, lim) %>% 
+      distinct() %>% 
+      mutate(gs=factor(gs, levels=w2d)) %>% 
+      mutate(intercept=-slope*(mid+(lim-mid)/2))
 
 p <- ggplot() +
       geom_tile(data= b %>% 
@@ -173,16 +187,40 @@ p <- ggplot() +
       geom_text(data=txt %>% mutate(gs=factor(gs, levels=w2d)), 
                 aes(x=1450, y=0, label=sub(" ", "\n", gs)),
                 color="black", hjust=1, lineheight=.75, fontface="italic") +
-      geom_rect(data=slopes %>% mutate(gs=factor(gs, levels=w2d)), 
-                 aes(xmin=mid, xmax=lim, ymin=-.5, ymax=.5),
-                color="black", fill=NA) +
-      geom_contour(data=slopes %>% mutate(gs=factor(gs, levels=w2d)),
-                   aes(cwd, southness, z=pred, group=edge),
+      #geom_rect(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)), 
+      #          aes(xmin=mid, xmax=lim, ymin=-.5, ymax=.5),
+      #          color="black", fill=NA) +
+      geom_segment(data=lines, 
+                   aes(x=mid, xend=lim, y=slope*mid+intercept, yend=slope*lim+intercept),
                    color="black") +
+      geom_segment(data=lines, 
+                   aes(x=mid, xend=(.5 - intercept)/slope, y=.5, yend=.5),
+                   color="black") +
+      geom_segment(data=lines, 
+                   aes(x=mid, xend=(-.5 - intercept)/slope, y=-.5, yend=-.5),
+                   color="black") +
+      geom_segment(data=lines, 
+                   aes(x=mid, xend=(-.5 - intercept)/slope, y=-.5, yend=-.5),
+                   color="black") +
+      #geom_abline(data=lines, 
+      #            aes(slope=slope, intercept=intercept),
+      #            color="black") +
+      geom_vline(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)), 
+                 aes(xintercept=mid),
+                 color="black", linetype=3) +
+      geom_vline(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)), 
+                 aes(xintercept=lim),
+                 color="black", linetype=3) +
+      #geom_contour(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)) %>%
+      #                  group_by(gs, edge) %>% mutate(pred=pred/max(pred)),
+      #             aes(cwd, southness, z=pred, group=paste(gs, edge)), 
+      #             breaks=c(.25), color="black") +
       scale_fill_gradientn(colours=c("gray95", "orange", "red", "darkred"), 
                            na.value="white") +
-      scale_x_continuous(limits=c(0, 1500), expand=c(0,0)) +
-      scale_y_continuous(breaks=c(-.5, 0, .5)) +
+      #scale_x_continuous(limits=c(0, 1500), expand=c(0,0)) +
+      #scale_y_continuous(breaks=c(-.5, 0, .5)) +
+      coord_cartesian(ylim=c(-.5,.5), xlim=c(0, 1500), expand=0) +
+      scale_y_continuous(breaks=c(-.3, 0, .3)) +
       facet_grid(gs~.) +
       labs(x="CWD (mm)",
            y="southness",
@@ -192,6 +230,7 @@ p <- ggplot() +
             panel.grid=element_blank(),
             legend.position=c(.12, .15),
             legend.background=element_rect(fill="white", color=NA))
+
 ggsave("figures/regional_southness_cwd_occupancy_contours.png", p, width=8, height=8, units="in")
 
 # export slope data
@@ -199,3 +238,4 @@ slopes %>%
       select(-cwd, -southness, -pred) %>%
       distinct() %>%
       write_csv("data/logistic_regression_coefficients.csv")
+
