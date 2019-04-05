@@ -65,6 +65,12 @@ sort(d$cwd1.gam.mean)
 summary(d$cwd1.hypv.opt)
 sort(d$cwd1.hypv.opt)
 
+# statistics for text
+summary(lm(d$cwd1.hypv.opt~d$reg.cwd_mean))
+summary(lm(d$cwd1.gam.mean~d$reg.cwd_mean))
+summary(lm(d$south.mean~d$reg.cwd_mean))
+cor(d$south.mean,d$reg.cwd_mean)
+
 # is lowest of these correlations significant? YES
 #####FIGURE_4 in paper
 png('figures/rangewideVpwdniche.png',width = 700,height = 800)
