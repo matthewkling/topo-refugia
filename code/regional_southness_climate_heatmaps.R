@@ -241,6 +241,66 @@ slopes %>%
 
 
 
+slopes <- read_csv("data/logistic_regression_coefficients.csv") %>%
+      filter(quantile==0.9) %>%
+      select(gs, edge, slope_southness:p_cwd) %>%
+      distinct() %>%
+      mutate(ratio=-1/slope)
+
+
+slopes %>%
+      mutate(edge = paste(edge, "CWD")) %>%
+      rename(species = gs,
+             niche_edge = edge,
+             southness_coef = slope_southness,
+             CWD_coef = slope_cwd,
+             southness_pvalue = p_southness,
+             CWD_pvalue = p_cwd) %>%
+      select(species, niche_edge, CWD_coef, CWD_pvalue,
+             southness_coef, southness_pvalue) %>%
+      mutate_at(vars(CWD_coef:southness_pvalue), signif, digits=3) %>%
+      write_csv("data/table_s1.csv")
+
+
+
+
+
+table(slopes$edge, sign(slopes$slope_cwd))
+table(slopes$edge, sign(slopes$slope_southness))
+table(sign(slopes$slope_southness)==sign(slopes$slope_cwd))
+
+table(sign(slopes$slope_southness)==sign(slopes$slope_cwd), slopes$p_southness < 0.05)
+
+table(slopes$p_cwd < 0.05)
+
+table(slopes$p_cwd < 0.05, slopes$p_southness < 0.05)
+
+slopes %>% filter(p_cwd > 0.05)
+
+
+mean(slopes$ratio)
+median(slopes$ratio)
+summary(slopes$ratio[slopes$p_southness < 0.05])
+
+hist(slopes$slope[slopes$p_southness < 0.05])
+summary(slopes$slope[slopes$p_southness < 0.05])
+summary(slopes$slope)
+
+
+# no sig diff in slopes between wet and dry edges
+t.test(slopes$ratio[slopes$edge=="high"],
+       slopes$ratio[slopes$edge=="low"], paired=T)
+
+ss <- slopes %>%
+      group_by(gs) %>%
+      mutate(sig = all(p_southness < 0.05)) %>%
+      filter(sig)
+
+ggplot(ss, aes(edge, slope, group=gs)) + geom_line()
+
+t.test(ss$slope[ss$edge=="high"],
+       ss$slope[ss$edge=="low"], paired=T)
+
 
 ################## every species #################
 
