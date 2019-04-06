@@ -63,25 +63,33 @@ cwd <- stack("big_data/climate/climate.tif")[[1]] %>%
       rasterToPoints() %>% 
       as.data.frame()
 
+pal <- c("#10002d", "darkblue", "#005954", "forestgreen", "yellowgreen", 
+         "yellow3", "darkgoldenrod2", "chocolate", "darkred")
+
 p <- ggplot() +
       geom_raster(data=cwd %>% filter(x > -125, x < -118, y > 33, y < 45),
                   aes(x, y, fill=climate.1)) +
       geom_polygon(data=md, aes(long, lat, group=group), 
                    color="black", fill=NA) +
-      scale_fill_gradientn(colours=c("darkblue", "forestgreen", "yellow3", 
-                                     "darkgoldenrod2", "chocolate"),
+      scale_fill_gradientn(colours=pal,
                            breaks=c(0, 500, 1000, 1500), limits=c(0, NA)) +
       annotate(geom="point", y=38.576906, x=-122.703292, 
                size=3) +
       coord_cartesian(xlim=c(-125, -118), ylim=c(33, 45),
                       expand=c(0,0)) +
       theme_void() +
-      theme(legend.position=c(.3, .1),
+      theme(legend.position=c(.35, .05),
             legend.direction="horizontal") +
       labs(fill="CWD (mm)") +
-      guides(fill=guide_colourbar(title.position="top", title.hjust = 0))
+      guides(fill=guide_colourbar(title.position="top", 
+                                  title.hjust = 0, barwidth=12))
 ggsave("figures/map_cwd.png", 
        p, width=4, height=8, units="in")
+
+# color ramp properties, which we need to replicate ramp for pepperwood bcm map
+pal %>% col2rgb() %>% t() %>% rgb(maxColorValue = 255)
+cwd %>% filter(x > -125, x < -118, y > 33, y < 45) %>% pull(climate.1) %>% range()
+
 
 
 r <- spf %>% 
