@@ -219,7 +219,7 @@ p <- ggplot() +
                            na.value="white") +
       #scale_x_continuous(limits=c(0, 1500), expand=c(0,0)) +
       #scale_y_continuous(breaks=c(-.5, 0, .5)) +
-      coord_cartesian(ylim=c(-.5,.5), xlim=c(0, 1500), expand=0) +
+      coord_cartesian(ylim=c(-.5,.5), xlim=c(0, 1550), expand=0) +
       scale_y_continuous(breaks=c(-.3, 0, .3)) +
       facet_grid(gs~.) +
       labs(x="CWD (mm)",
