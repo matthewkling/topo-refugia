@@ -198,23 +198,24 @@ cor(d[,c('cwd.mean','cwd.cf','aet.cf','tminmin.cf')])
 names(d)
 
 ### FIGURE_5 for paper
-png('figures/cwdSensitivityVnichemeans.png',width = 1000,height = 600)
-op=par(mfrow=c(1,2),mar=c(5,5,1,1))
+pdf('figures/Fig5_cwdSensitivityVnichemeans.pdf',width = 7,height = 11)
+op=par(mfrow=c(2,1),mar=c(5,5,1,1))
 plot(cwd.cf~reg.cwd.mean,data=d,pch=19,xlab='Regional CWD niche mean (mm)',ylab='Response to +120 CWD',type='n',cex.lab=1.5)
 text(d$reg.cwd.mean,d$cwd.cf,labels=d$Plot.abb,cex=1.5)
 abline(lm(cwd.cf~reg.cwd.mean,data=d))
-text(800,-0.4,'p≤0.001',cex=2)
+text(800,-0.4,'p<0.001',cex=2)
 summary(lm(cwd.cf~reg.cwd.mean,data=d))
 abline(h=0,lty=2)
 
-plot(cwd.cf~cwd.mean,data=d,pch=19,xlab='Topographic CWD niche mean (mm)',ylab='',type='n',cex.lab=1.5)
+plot(cwd.cf~cwd.mean,data=d,pch=19,xlab='Topographic CWD niche mean (mm)',ylab='Response to +120 CWD',type='n',cex.lab=1.5)
 text(d$cwd.mean,d$cwd.cf,labels=d$Plot.abb,cex=1.5)
 abline(lm(cwd.cf~cwd.mean,data=d))
 summary(lm(cwd.cf~cwd.mean,data=d))
 abline(h=0,lty=2)
-text(950,-0.4,'p≤0.003',cex=2)
+text(950,-0.4,'p<0.003',cex=2)
 par(op)
 dev.off()
+system('open figures/Fig5_cwdSensitivityVnichemeans.pdf')
 
 ##### After GAM models have been fit, they can be reloaded here without going through the entire loop below - just to
 if (FALSE) {
