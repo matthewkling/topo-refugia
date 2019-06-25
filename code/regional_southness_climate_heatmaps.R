@@ -174,51 +174,61 @@ q <- .9
 
 lines <- slopes %>% 
       filter(quantile==q) %>% 
-      select(gs, edge, slope, mid, lim) %>% 
+      select(gs, edge, slope, mid, lim, p_southness) %>% 
       distinct() %>% 
-      mutate(gs=factor(gs, levels=w2d)) %>% 
-      mutate(intercept=-slope*(mid+(lim-mid)/2))
+      mutate(gs=factor(gs, levels=w2d),
+             intercept=-slope*(mid+(lim-mid)/2),
+             sig=p_southness < 0.05) %>%
+      mutate(bezel_end_upper = case_when(edge=="high" & ((.5 - intercept)/slope) < mid ~ mid,
+                                         edge=="high" & ((.5 - intercept)/slope) > mid ~ ((.5 - intercept)/slope),
+                                         edge=="low" & ((.5 - intercept)/slope) > mid ~ mid,
+                                         edge=="low" & ((.5 - intercept)/slope) < mid ~ ((.5 - intercept)/slope)),
+             bezel_end_lower = case_when(edge=="high" & ((-.5 - intercept)/slope) > lim ~ lim,
+                                         edge=="high" & ((-.5 - intercept)/slope) < lim ~ ((-.5 - intercept)/slope),
+                                         edge=="low" & ((-.5 - intercept)/slope) < lim ~ lim,
+                                         edge=="low" & ((-.5 - intercept)/slope) > lim ~ ((-.5 - intercept)/slope))
+      )
+
 
 p <- ggplot() +
+      
+      # heatmaps
       geom_tile(data= b %>% 
                       group_by(gs) %>% mutate(occ = occ/max(occ)) %>% 
                       ungroup() %>% mutate(gs=factor(gs, levels=w2d)), 
                 aes(cwd_bin, southness_bin, fill=occ)) +
+      
+      # bounding boxes of analysis regions
+      geom_rect(data=lines, aes(xmin=mid, xmax=lim, ymin=-.5, ymax=.5),
+                color="gray80", fill=NA) +
+  
+      # species names
       geom_text(data=txt %>% mutate(gs=factor(gs, levels=w2d)), 
                 aes(x=1450, y=0, label=sub(" ", "\n", gs)),
                 color="black", hjust=1, lineheight=.75, fontface="italic") +
-      #geom_rect(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)), 
-      #          aes(xmin=mid, xmax=lim, ymin=-.5, ymax=.5),
-      #          color="black", fill=NA) +
+      
+      # sloped isoclines
       geom_segment(data=lines, 
-                   aes(x=mid, xend=lim, y=slope*mid+intercept, yend=slope*lim+intercept),
+                   aes(x=mid, xend=lim, y=slope*mid+intercept, yend=slope*lim+intercept,
+                       linetype = sig),
                    color="black") +
+      
+      # upper lines connecting isocline end to data boundary
+      geom_segment(data=lines,
+                   aes(x=mid, xend=bezel_end_upper, y=.5, yend=.5,
+                       linetype = sig),
+                   color="black") +
+      
+      # lower lines connecting isocline end to data boundary
       geom_segment(data=lines, 
-                   aes(x=mid, xend=(.5 - intercept)/slope, y=.5, yend=.5),
+                   aes(x=mid, xend=bezel_end_lower, y=-.5, yend=-.5,
+                       linetype = sig),
                    color="black") +
-      geom_segment(data=lines, 
-                   aes(x=mid, xend=(-.5 - intercept)/slope, y=-.5, yend=-.5),
-                   color="black") +
-      geom_segment(data=lines, 
-                   aes(x=mid, xend=(-.5 - intercept)/slope, y=-.5, yend=-.5),
-                   color="black") +
-      #geom_abline(data=lines, 
-      #            aes(slope=slope, intercept=intercept),
-      #            color="black") +
-      geom_vline(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)), 
-                 aes(xintercept=mid),
-                 color="black", linetype=3) +
-      geom_vline(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)), 
-                 aes(xintercept=lim),
-                 color="black", linetype=3) +
-      #geom_contour(data=slopes %>% filter(quantile==q) %>% mutate(gs=factor(gs, levels=w2d)) %>%
-      #                  group_by(gs, edge) %>% mutate(pred=pred/max(pred)),
-      #             aes(cwd, southness, z=pred, group=paste(gs, edge)), 
-      #             breaks=c(.25), color="black") +
+      
+      # styling
+      scale_linetype_manual(values=c(2, 1), guide=F) +
       scale_fill_gradientn(colours=c("gray95", "orange", "red", "darkred"), 
                            na.value="white") +
-      #scale_x_continuous(limits=c(0, 1500), expand=c(0,0)) +
-      #scale_y_continuous(breaks=c(-.5, 0, .5)) +
       coord_cartesian(ylim=c(-.5,.5), xlim=c(0, 1550), expand=0) +
       scale_y_continuous(breaks=c(-.3, 0, .3)) +
       facet_grid(gs~.) +
