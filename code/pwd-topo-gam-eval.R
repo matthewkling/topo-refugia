@@ -51,10 +51,9 @@ summary(hypv$model3)
 cvals <- seq(min(hypv$cwd8110,na.rm=T),max(hypv$cwd8110,na.rm=T),length.out = 100)
 tvals <- seq(min(hypv$model3,na.rm=T),max(hypv$model3,na.rm=T),length.out = 100)
 cspace <- data.frame(cwd8110 = rep(cvals,100),model3 = rep(tvals,each=100))
+for (i in 1:13) cspace <- cbind(cspace,rep(NA,nrow(cspace)))
 dim(cspace)
 names(cspace) <- c('cwd8110','model3',paste0(species,'_pred'))
-cspace$cwd8110 <- rep(cvals,100)
-cspace$model3 <- rep(tvals,each=100)
 head(cspace)
 
 # extract summaries and model fits from gam models

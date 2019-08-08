@@ -63,8 +63,10 @@ vars <- c("cwd8110", "model3")
 # save models for predictions and projections on future scenarios
 gfits <- list()
 
+str(hypv)
+
 # construct formula, fit gam, add model predictions to data frame
-sp=species[1]
+i=1
 for(i in 1:length(species)){
   sp <- species[i]
   message(sp)
