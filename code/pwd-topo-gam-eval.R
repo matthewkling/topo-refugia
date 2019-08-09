@@ -5,7 +5,7 @@ library(tidyverse)
 library(mgcv)
 
 # load 10 m hyperspectral tree layer
-hyp <- readRDS('data/pwd_hyp_topo.Rdata')
+hyp <- readRDS('big_data/pwd_hyp_topo.Rdata')
 names(hyp)
 dim(hyp)
 
@@ -23,8 +23,6 @@ hypv <- hypv[-which(hypv$rock.group=='ultra'),]
 dim(hypv)
 names(hypv)
 
-rsamp <- sample(nrow(hypv),5000)
-
 # explanation for some of the abiotic variables
 names(hypv)
 #cwd8110 - 30 year cwd from pepperwood 10 m dem and Flints downscaled model
@@ -41,19 +39,25 @@ species==names(hypv)[15:27]
 sci.names <- c('Adenostoma fasciculatum','Acer macrophyllum','Aesculus californica','Arbutus menziesii','Notholithocarpus densiflorus','Pseudotsuga menziesii','Quercus agrifolia','Quercus douglasii','Quercus garryana','Quercus kelloggii','Quercus lobata','Sequoia sempervirens','Umbellularia californica')
 cbind(species,sci.names)
 
-# gam model variables
-vars <- c("cwd8110", "model3")
+# choose random rows before selecting spatial vs non-spatial
+rsamp <- sample(nrow(hypv),10000)
 
+# gam model variables
+#vars <- c("cwd8110", "model3")
+SPATIAL <- TRUE
 
 # cspace is an orthogonal matrix spanning the range of cwd and tmin vals, to visualize model fit
 summary(hypv$cwd8110)
 summary(hypv$model3)
 cvals <- seq(min(hypv$cwd8110,na.rm=T),max(hypv$cwd8110,na.rm=T),length.out = 100)
 tvals <- seq(min(hypv$model3,na.rm=T),max(hypv$model3,na.rm=T),length.out = 100)
-cspace <- data.frame(cwd8110 = rep(cvals,100),model3 = rep(tvals,each=100))
-for (i in 1:13) cspace <- cbind(cspace,rep(NA,nrow(cspace)))
+
+(hpXmean <- mean(hypv$hpX))
+(hpYmean <- mean(hypv$hpY))
+
+if (SPATIAL) cspace <- data.frame(cwd8110=rep(cvals,100),model3=rep(tvals,each=100),hpX=rep(hpXmean,10000),hpY=rep(hpYmean,10000)) else cspace <- data.frame(cwd8110=rep(cvals,100),model3=rep(tvals,each=100))
+
 dim(cspace)
-names(cspace) <- c('cwd8110','model3',paste0(species,'_pred'))
 head(cspace)
 
 # extract summaries and model fits from gam models
@@ -62,7 +66,8 @@ head(cspace)
 gam_niche <- data.frame(species,sci.names,gam2.tabund=NA,cwd2.cspace.opt=NA,tmin2.cspace.opt=NA,cwd2.hypv.opt=NA,tmin2.hypv.opt=NA,cwd2.gam.mean=NA,tmin2.gam.mean=NA,hypv2.pmax=NA,cspace2.pmax=NA,dev2.expl=NA,cwd2.chisq=NA,tmin2.chisq=NA,cwd1.cspace.opt=NA,cwd1.hypv.opt=NA,cwd1.gam.mean=NA,hypv1.pmax=NA,cspace1.pmax=NA,cwd1.dev.expl=NA)
 
 # read in gam bivariate model outputs
-gfits <- readRDS('big_data/pwd_gam2_fits.Rdata')
+if (SPATIAL) gfits <- readRDS('big_data/pwd_gam2spatial_fits.Rdata') else gfits <- readRDS('big_data/pwd_gam2_fits.Rdata')
+#str(gfits)
 
 sfits <- list()
 i=1
@@ -70,18 +75,22 @@ for (i in 1:length(species)){
   sp <- species[i]
   message(sp)
   fit <- gfits[[i]]
-  hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
+  hypv[rsamp,paste0(sp, "_pred")] <- predict(fit, hypv[rsamp,], type="response")
   cspace[,paste0(sp, "_pred")] <- predict(fit,cspace,type="response")
   sfits[[i]] <- summary(fit)
 }
 
+head(cspace)
+
 # plot gams
 names(cspace)
 wm <- which(cspace$model3==unique(cspace$model3)[51])
-(maxp <- max(cspace[wm,3:15]))
+if (SPATIAL) minPcol <- 5 else minPcol <- 3
+maxPcol <- minPcol+12
+maxp <- max(cspace[wm,minPcol:maxPcol])
 pall <- rainbow(13)
-plot(cspace$cwd8110[wm],cspace[wm,3]/max(cspace[wm,3]),type='l',ylim=c(0,1),col=pall[1])
-for (i in 4:15) lines(cspace$cwd8110[wm],cspace[wm,i]/max(cspace[wm,i]),col=pall[i-3])
+plot(cspace$cwd8110[wm],cspace[wm,minPcol]/max(cspace[wm,minPcol]),type='l',ylim=c(0,1),col=pall[1])
+for (i in (minPcol+1):maxPcol) lines(cspace$cwd8110[wm],cspace[wm,i]/max(cspace[wm,i]),col=pall[i-3])
 
 i=1
 for (i in 1:length(species)) {
@@ -102,8 +111,16 @@ for (i in 1:length(species)) {
   gam_niche[i,c('cwd2.chisq','tmin2.chisq')] <- sfits[[i]]$chi.sq
 }
 gam_niche
+if (SPATIAL) write.csv(gam_niche,'data/pwd_gam_Aug19_spatial.csv') else write.csv(gam_niche,'data/pwd_gam_Aug19_nonspatial.csv')
 
+#### COMPARE SPATIAL and NON-SPATIAL outputs
+gam_spatial <- read.csv('data/pwd_gam_Aug19_spatial.csv')
+gam_nonsp <- read.csv('data/pwd_gam_Aug19_nonspatial.csv')
 
+plot(gam_nonsp$cwd2.cspace.opt,gam_spatial$cwd2.cspace.opt)
+cbind(species,gam_nonsp$cwd2.cspace.opt,gam_spatial$cwd2.cspace.opt)
+
+###### END HERE FOR NOW
 # read in gam univariate model outputs
 gfits <- readRDS('big_data/pwd_gam1cwd_fits.Rdata')
 

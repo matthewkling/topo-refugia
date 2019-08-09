@@ -5,7 +5,7 @@ library(tidyverse)
 library(mgcv)
 
 # load 10 m hyperspectral tree layer
-hyp <- readRDS('data/pwd_hyp_topo.Rdata')
+hyp <- readRDS('big_data/pwd_hyp_topo.Rdata')
 names(hyp)
 dim(hyp)
 
@@ -22,6 +22,7 @@ dim(hypv)
 hypv <- hypv[-which(hypv$rock.group=='ultra'),]
 dim(hypv)
 names(hypv)
+head(hypv)
 
 rsamp <- sample(nrow(hypv),5000)
 
@@ -36,7 +37,7 @@ names(hypv)
 # janmin: downscaled janmin from Flint's work
 
 # look at pairwise correlations of some predictors
-pairs(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model3','janmin')])
+#pairs(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model3','janmin')])
 cor(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model3','janmin')],use = 'pair')
 
 # pairs that should not be combined in a model:
@@ -55,7 +56,11 @@ cbind(species,sci.names)
 # set up orthogonal environmental space spanning range of variables
 cr <- seq(min(hypv$cwd8110,na.rm=T),max(hypv$cwd8110,na.rm=T),length.out = 100)
 tr <- seq(min(hypv$model3,na.rm=T),max(hypv$model3,na.rm=T),length.out = 100)
-cspace <- data.frame(cwd8110=rep(cr,100),model3=rep(tr,each=100))
+cspace <- data.frame(cwd8110=rep(cr,100),model3=rep(tr,each=100),hpX=rep(NA,10000),hpY=rep(NA,10000))
+dim(cspace)
+
+#subsample to reduce spatial autocorrelation
+rsamp <- sample(nrow(hypv),10000)
 
 # bivariate gams
 vars <- c("cwd8110", "model3")
@@ -63,21 +68,32 @@ vars <- c("cwd8110", "model3")
 # save models for predictions and projections on future scenarios
 gfits <- list()
 
-str(hypv)
-
 # construct formula, fit gam, add model predictions to data frame
 i=1
 for(i in 1:length(species)){
   sp <- species[i]
   message(sp)
   formula <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + ")))
-  fit <- gam(formula, data=hypv, family=binomial(logit))
-  hypv[,paste0(sp, "_pred")] <- predict(fit, hypv, type="response")
-  cspace[,paste0(sp, "_pred")] <- predict(fit,cspace,type="response")
+  fit <- gam(formula, data=hypv[rsamp,], family=binomial(logit))
+  #hypv[,paste0(sp, "_pred_nonsp")] <- predict(fit, hypv[rsamp,], type="response")
+  #cspace[,paste0(sp, "_pred_nonsp")] <- predict(fit,cspace,type="response")
   gfits[[i]] <- fit
 }
 saveRDS(gfits,'big_data/pwd_gam2_fits.Rdata')
 
+# construct formula with xy spatial grid, fit gam, add model predictions to data frame
+vars <- c("cwd8110", "model3",'hpX','hpY')
+i=1
+for(i in 1:length(species)){
+  sp <- species[i]
+  message(sp)
+  formula <- as.formula(paste0(sp, " ~ ", paste0("s(", vars, ")", collapse=" + ")))
+  fit <- gam(formula, data=hypv[rsamp,], family=binomial(logit))
+  #hypv[,paste0(sp, "_pred_spat")] <- predict(fit, hypv, type="response")
+  #cspace[,paste0(sp, "_pred_spat")] <- predict(fit,cspace,type="response")
+  gfits[[i]] <- fit
+}
+saveRDS(gfits,'big_data/pwd_gam2spatial_fits.Rdata')
 
 # Now fit univariate cwd and southness gams and save models
 # univariate gams
