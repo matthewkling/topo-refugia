@@ -242,3 +242,26 @@ boxplot(hypv[,paste0(sp, "_pred3")]~hypv$rock.group,)
 plot(hypv[rsamp,c('cwd8110',paste0(sp, "_pred.mun"))])
 points(hypv[rsamp,c('cwd8110',paste0(sp, "_pred.bl"))])
 
+#### mantel tests for spatial structure of topoclimate
+head(hypv)
+rsamp <- sample(nrow(hypv),100)
+#rsamp <- c(rsamp,rsamp+1)
+edist <- function(x1,y1,x2,y2) sqrt((x1-x1)^2+(y2-y1)^2)
+
+dmatrix <- c()
+i=2;j=1
+yvar <- hypv$cwd8110
+plot(hypv$hpX[rsamp],hypv$hpY[rsamp])
+for (i in 2:length(rsamp)) {
+  ri <- rsamp[i]
+  for (j in 1:(i-1)) {
+    rj <- rsamp[j]
+    dist <- edist(hypv$hpX[ri],hypv$hpY[ri],
+                  hypv$hpX[rj],hypv$hpY[rj])
+    dy <- abs(yvar[ri]-yvar[rj])
+    dmatrix <- rbind(dmatrix,c(dist,dy))
+  }
+}
+head(dmatrix)
+plot(dmatrix,log='x')
+cor(dmatrix)
