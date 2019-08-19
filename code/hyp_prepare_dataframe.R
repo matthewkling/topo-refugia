@@ -7,6 +7,7 @@ library(maptools)
 library(nnet)
 library(sf)
 library(rgdal)
+library(spatstat)
 source('/Users/david/Documents/Projects/Toolbox/spatial_tools/expand_extent.R')
 
 #geology

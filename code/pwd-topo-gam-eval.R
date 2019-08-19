@@ -44,7 +44,7 @@ rsamp <- sample(nrow(hypv),10000)
 
 # gam model variables
 #vars <- c("cwd8110", "model3")
-SPATIAL <- TRUE
+SPATIAL <- FALSE
 
 # cspace is an orthogonal matrix spanning the range of cwd and tmin vals, to visualize model fit
 summary(hypv$cwd8110)
@@ -111,6 +111,8 @@ for (i in 1:length(species)) {
   gam_niche[i,c('cwd2.chisq','tmin2.chisq')] <- sfits[[i]]$chi.sq
 }
 gam_niche
+gam_niche[,c('species','cwd2.cspace.opt')]
+
 if (SPATIAL) write.csv(gam_niche,'data/pwd_gam_Aug19_spatial.csv') else write.csv(gam_niche,'data/pwd_gam_Aug19_nonspatial.csv')
 
 #### COMPARE SPATIAL and NON-SPATIAL outputs

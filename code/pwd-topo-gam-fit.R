@@ -24,8 +24,6 @@ dim(hypv)
 names(hypv)
 head(hypv)
 
-rsamp <- sample(nrow(hypv),5000)
-
 # explanation for some of the abiotic variables
 names(hypv)
 #cwd8110 - 30 year cwd from pepperwood 10 m dem and Flints downscaled model
@@ -38,6 +36,9 @@ names(hypv)
 
 # look at pairwise correlations of some predictors
 #pairs(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model3','janmin')])
+
+#subsample to reduce spatial autocorrelation
+rsamp <- sample(nrow(hypv),10000)
 cor(hypv[rsamp,c('cwd8110','southness','TPI100','TPI500','TPI1k','topoid','model3','janmin')],use = 'pair')
 
 # pairs that should not be combined in a model:
@@ -60,7 +61,7 @@ cspace <- data.frame(cwd8110=rep(cr,100),model3=rep(tr,each=100),hpX=rep(NA,1000
 dim(cspace)
 
 #subsample to reduce spatial autocorrelation
-rsamp <- sample(nrow(hypv),10000)
+rsamp <- sample(nrow(hypv),1000)
 
 # bivariate gams
 vars <- c("cwd8110", "model3")
