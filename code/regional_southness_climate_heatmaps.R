@@ -88,7 +88,6 @@ ggsave("figures/regional_southness_cwd_occupancy.png", p, width=8, height=8, uni
 
 
 
-
 ##############################################
 
 
@@ -242,6 +241,66 @@ p <- ggplot() +
             legend.background=element_rect(fill="white", color=NA))
 
 ggsave("figures/regional_southness_cwd_occupancy_contours.png", p, width=8, height=8, units="in")
+
+
+
+
+
+
+p <- ggplot() +
+  
+  # heatmaps
+  geom_tile(data= b %>% 
+              group_by(gs) %>% mutate(occ = occ/max(occ)) %>% 
+              ungroup() %>% mutate(gs=factor(gs, levels=w2d)), 
+            aes(cwd_bin, southness_bin, fill=occ)) +
+  
+  # bounding boxes of analysis regions
+  geom_rect(data=lines, aes(xmin=mid, xmax=lim, ymin=-.5, ymax=.5),
+            color="gray80", fill=NA) +
+  
+  # species names
+  geom_text(data=txt %>% mutate(gs=factor(gs, levels=w2d)), 
+            aes(x=1525, y=0, label=sub(" ", "\n", gs)),
+            color="black", hjust=1, lineheight=.75, fontface="italic") +
+  
+  # sloped isoclines
+  geom_segment(data=lines, 
+               aes(x=mid, xend=lim, y=slope*mid+intercept, yend=slope*lim+intercept,
+                   linetype = sig),
+               color="black") +
+  
+  # upper lines connecting isocline end to data boundary
+  geom_segment(data=lines,
+               aes(x=mid, xend=bezel_end_upper, y=.5, yend=.5,
+                   linetype = sig),
+               color="black") +
+  
+  # lower lines connecting isocline end to data boundary
+  geom_segment(data=lines, 
+               aes(x=mid, xend=bezel_end_lower, y=-.5, yend=-.5,
+                   linetype = sig),
+               color="black") +
+  
+  # styling
+  scale_linetype_manual(values=c(2, 1), guide=F) +
+  scale_fill_gradientn(colours=c("gray95", "orange", "red", "darkred"), 
+                       na.value="white") +
+  guides(fill=guide_colorbar(barwidth=12, barheight=.5)) +
+  coord_cartesian(ylim=c(-.5,.5), xlim=c(0, 1550), expand=0) +
+  scale_y_continuous(breaks=c(-.3, 0, .3)) +
+  facet_grid(gs~.) +
+  labs(x="CWD (mm)",
+       y="Southness",
+       fill="Relative\noccupancy  ") +
+  theme_minimal() +
+  theme(strip.text=element_blank(),
+        panel.grid=element_blank(),
+        legend.position="bottom")
+
+ggsave("figures/figure_4.png", p, width=4.5, height=7, units="in", dpi=2000)
+
+
 
 # export slope data
 slopes %>%
