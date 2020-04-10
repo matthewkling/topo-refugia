@@ -40,9 +40,10 @@ p <- ggplot(d %>% mutate(gs = factor(gs, levels=w2d)),
       annotate(geom="point", y=38.576906, x=-122.703292, color="red", size=3) +
       theme_void() +
       facet_wrap(~gs) +
-      theme(legend.position="none")
+      theme(legend.position="none",
+            strip.text = element_text(face = "italic"))
 ggsave("figures/map_ranges_faceted.png", 
-       p, width=6, height=8, units="in")
+       p, width=7, height=7*4/3, units="in")
 
 ggplot(d, aes(long, lat, group=paste(gs, group), color=gs)) +
       geom_polygon(fill=NA) +
