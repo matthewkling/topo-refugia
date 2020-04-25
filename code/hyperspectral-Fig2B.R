@@ -16,6 +16,7 @@ hpx
 
 rCodes <- read.csv('/Users/david/Google\ Drive/Drive-Projects/Pepperwood/HyperspectralTreeMap/utm10-original/svm_raster_codes.csv',as.is=T)
 head(rCodes)
+rCodes[rCodes$pall!='grey',c('ShortName','pall')]
 
 source('/Users/david/Documents/Projects/Toolbox/spatial_tools/extent2poly.R')
 hpxSP <- extent2poly(hpx)
@@ -130,7 +131,7 @@ plot(cut(cwd.hpx,breaks=seq(0,1394,length.out=10)),axes=F,col=pall,lwd=3)
 plot(hyp_poly,add=T,border='red',lwd=3)
 #plot(hp.aea10,add=T)
 #plot(hpxSP.aea,add=T)
-plot(PWDa,add=T,lwd=10)
+plot(PWDa,add=T,border='white',lwd=10)
 par(op)
 dev.off()
 

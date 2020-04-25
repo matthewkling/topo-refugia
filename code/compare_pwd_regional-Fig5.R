@@ -73,35 +73,58 @@ cor(d$south.mean,d$reg.cwd_mean)
 
 # is lowest of these correlations significant? YES
 #####FIGURE_4 in paper
-pdf('figures/Fig4_rangewideVpwdniche.pdf',width = 7,height = 11)
-op=par(mfrow=c(2,1),mar=c(5,5,1,1))
-plot(cwd1.hypv.opt~reg.cwd_mean,data=d,type='n',
-     xlab='',
-     ylab='Pepperwood CWD optimum (mm)',cex.lab=1.5)
-text(d$reg.cwd_mean,d$cwd1.hypv.opt,labels=d$Plot.abb,cex=1.5)
-fit <- lm(cwd1.hypv.opt~reg.cwd_mean,data=d)
-abline(fit)
-#abline(0,1,lty=2)
-summary(fit)
-text(850,425,"p<0.0001",cex=2)
-cor(d$reg.cwd_mean,d$cwd1.hypv.opt)
+rCodes <- read.csv('/Users/david/Google\ Drive/Drive-Projects/Pepperwood/HyperspectralTreeMap/utm10-original/svm_raster_codes.csv',as.is=T)
+head(rCodes)
+sPall <- rCodes$pall[rCodes$pall!='grey']
+d$Plot.abb
 
+{
+  png('figures/Fig5_rangewideVpwdniche.png',width = 1500,height = 1800)
+  op=par(mfrow=c(2,1),mar=c(10,10,2,5),cex.axis=3,cex.lab=3)
+  plot(cwd1.hypv.opt~reg.cwd_mean,data=d,type='n',lwd=3,
+       xlab='',
+       ylab='',
+       ylim=c(300,1450)
+       ,xaxt='n',yaxt='n'
+       )
+  axis(1,at=NULL,labels=FALSE,lwd=3,lwd.ticks=3)
+  axis(2,at=NULL,labels=FALSE,lwd=3,lwd.ticks=3)
+  #ADD IN POWERPOINT ylab='Pepperwood CWD optimum (mm)')
+  text(d$reg.cwd_mean,d$cwd1.hypv.opt,labels=d$Plot.abb,cex=3)
+  points(cwd1.hypv.opt~reg.cwd_mean,data=d,col=sPall,cex=12,lwd=5)
+  fit <- lm(cwd1.hypv.opt~reg.cwd_mean,data=d)
+  abline(fit,lwd=2)
+  #abline(0,1,lty=2)
+  summary(fit)
+  text(400,1400,"p<0.0001",cex=3,font=2)
+  cor(d$reg.cwd_mean,d$cwd1.hypv.opt)
+  
+  {
+    plot(south.mean~reg.cwd_mean,data=d,type='n',
+         xlab='',
+         ylab='',
+         ylim=c(-0.2,0.1)
+         ,xaxt='n',yaxt='n'
+         )
+    axis(1,at=NULL,labels=FALSE,lwd=3,lwd.ticks=3)
+    axis(2,at=NULL,labels=FALSE,lwd=3,lwd.ticks=3)
+    #xlab='Range-wide CWD mean (mm)',
+    #ylab='Pepperwood southness')
+    text(d$reg.cwd_mean,d$south.mean,labels=d$Plot.abb,cex=3)
+    points(d$reg.cwd_mean,d$south.mean,col=sPall,cex=12,lwd=5)
+    fit <- lm(south.mean~reg.cwd_mean,data=d)
+    abline(fit,lwd=2)
+    #abline(0,1,lty=2)
+    summary(fit)
+    text(400,0.08,"p<0.03",cex=3,font=2)
+    
+    cor(d$reg.cwd_mean,d$south.mean)
+    par(op)
+    dev.off()
+  }
+}
 
-plot(south.mean~reg.cwd_mean,data=d,type='n',
-     xlab='Range-wide CWD mean (mm)',
-     ylab='Pepperwood southness',cex.lab=1.5)
-text(d$reg.cwd_mean,d$south.mean,labels=d$Plot.abb,cex=1.5)
-fit <- lm(south.mean~reg.cwd_mean,data=d)
-abline(fit)
-#abline(0,1,lty=2)
-summary(fit)
-text(850,-0.17,"p<0.03",cex=2)
-
-cor(d$reg.cwd_mean,d$south.mean)
-par(op)
-dev.off()
-
-system('open figures/Fig4_rangewideVpwdniche.pdf')
+system('open figures/Fig5_rangewideVpwdniche.png')
 
 d$Common.name
 
